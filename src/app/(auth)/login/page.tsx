@@ -29,7 +29,7 @@ export default function LoginPage() {
     const data = await res.json()
     localStorage.setItem("token", data.token)
     toast.success("Login berhasil!")
-    router.push("/dashboard")
+    router.push("/")
   }
 
   return (
@@ -82,6 +82,14 @@ export default function LoginPage() {
               Register
             </Link>
           </p>
+
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/')}
+            className="mt-2 w-full text-green-700"
+          >
+            ← Kembali ke Beranda
+          </Button>
         </div>
       </div>
     </main>
