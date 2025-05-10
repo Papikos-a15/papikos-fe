@@ -44,6 +44,13 @@ export default function ChooseRolePage() {
             </CardContent>
           </Card>
         </div>
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/')}
+          className="mt-2 w-full text-green-700"
+        >
+          ← Kembali ke Beranda
+        </Button>
       </div>
     </main>
   )

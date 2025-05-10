@@ -17,10 +17,12 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     const token = localStorage.getItem('token')
+    const API_URL = process.env.NEXT_PUBLIC_API_URL
+
     if (!token) return
 
     try {
-      await fetch('http://localhost:8080/auth/logout', {
+      await fetch(`${API_URL}/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -31,9 +33,11 @@ export default function Navbar() {
     }
 
     localStorage.removeItem('token')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('role')
     setIsLoggedIn(false)
     toast.success("Logout berhasil!")
-    router.push('/')
+    router.push('/login')
   }
 
   return (

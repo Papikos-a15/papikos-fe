@@ -17,12 +17,14 @@ export default function RegisterOwnerPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL
+
     if (password !== confirmPassword) {
       toast.error("Konfirmasi password tidak cocok.")
       return
     }
 
-    const res = await fetch("http://localhost:8080/auth/register/owner", {
+    const res = await fetch(`${API_URL}/auth/register/owner`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
