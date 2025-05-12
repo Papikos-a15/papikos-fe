@@ -14,6 +14,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
     setIsLoggedIn(!!token);
   }, []);
 
@@ -30,6 +31,9 @@ export default function LandingPage() {
             <h1 className="text-4xl md:text-5xl font-bold text-black mb-6 leading-tight">
               Sewa Kos Aman & Mudah <br /> bersama <span className="text-green-700">Papikos</span>
             </h1>
+            <p className="text-sm text-gray-500 mb-4">
+              {isLoggedIn ? `Selamat datang kembali! Peran Anda: ${localStorage.getItem('role') || 'Tidak diketahui'}` : "Belum punya akun? Daftar sekarang untuk pengalaman terbaik."}
+            </p>
             <p className="text-lg text-gray-700 mb-8 max-w-md">
               Platform terpercaya yang mempertemukan penyewa dan pemilik kos dalam satu aplikasi yang praktis dan efisien.
             </p>

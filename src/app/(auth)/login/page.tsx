@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -8,10 +8,34 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import Link from "next/link"
 
+function decodeJWT(token: string) {
+  const base64Url = token.split('.')[1]; 
+  const base64 = base64Url.replace('-', '+').replace('_', '/');
+  const jsonPayload = atob(base64);  
+  return JSON.parse(jsonPayload);  
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    
+    if (token) {
+      const decodedToken = decodeJWT(token)
+      const role = decodedToken.role
+
+
+      if (role === "ADMIN") {
+        router.push("/admin")
+      } else {
+        router.push("/")
+      }
+    }
+  }, [router])
+  
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,12 +53,23 @@ export default function LoginPage() {
       return
     }
 
-    const data = await res.json()
-    localStorage.setItem("token", data.token)
-    localStorage.setItem("userId", data.userId)
-    localStorage.setItem("role", data.role)
+    const data = await res.json() 
+    const token = data.token
+
+    const decodedToken = decodeJWT(token);  
+
+    localStorage.setItem("token", token); 
+    localStorage.setItem("userId", decodedToken.userId);  
+    localStorage.setItem("role", decodedToken.role);  
+    const role = decodedToken.role
+
     toast.success("Login berhasil!")
-    router.push("/")
+
+    if (role === "ADMIN") {
+      router.push("/admin")
+    } else {
+      router.push("/")
+    }
   }
 
   return (
@@ -42,7 +77,11 @@ export default function LoginPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 shadow-xl bg-white rounded-xl overflow-hidden w-full max-w-4xl">
         {/* Kiri: Ilustrasi atau branding */}
         <div className="hidden md:flex items-center justify-center bg-green-600">
-          <h2 className="text-4xl font-bold text-green-700"></h2>
+          <img
+            src="/images/login.png"
+            alt="Login Illustration"
+            className="w-full h-full object-cover"
+          />
         </div>
 
         {/* Kanan: Form Login */}

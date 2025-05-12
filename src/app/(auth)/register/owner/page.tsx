@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,13 @@ export default function RegisterOwnerPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+
+  useEffect(() => {
+      const token = localStorage.getItem("token")
+      if (token) {
+        router.push("/")
+      }
+    }, [router])
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,10 +60,11 @@ export default function RegisterOwnerPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 shadow-xl bg-white rounded-xl overflow-hidden w-full max-w-4xl">
         {/* Kiri: Branding */}
         <div className="hidden md:flex items-center justify-center bg-green-600 text-white p-8">
-          <div className="text-center space-y-2">
-            <h2 className="text-3xl font-bold">Selamat Datang!</h2>
-            <p className="text-sm">Kelola properti kos Anda secara efisien dan praktis.</p>
-          </div>
+          <img
+            src="/images/register.png"
+            alt="Login Illustration"
+            className="w-full h-full object-cover scale-120 translate-y-[-10px]"
+          />
         </div>
 
         {/* Kanan: Form Register */}
