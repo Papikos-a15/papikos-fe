@@ -20,20 +20,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { use } from "react";
 
 interface KosDetail {
   id: string;
+  ownerId: string; // UUID of the owner
+  tenantId: string | null; // UUID of tenant, can be null if not rented
   name: string;
-  location: string;
-  price: number;
-  availability: number;
-  facilities: string[];
+  address: string; // This is the correct field name from backend
   description: string;
-  rules: string[];
-  imageUrls: string[];
-  ownerId: string;
-  ownerName: string;
-  ownerPhone: string;
+  price: number;
+  available: boolean; // Changed from availability (number) to available (boolean)
 }
 
 export default function KosDetailPage({
@@ -41,12 +38,42 @@ export default function KosDetailPage({
 }: {
   params: { kosId: string };
 }) {
+  const resolvedParams = use(params);
+  const kosId = resolvedParams.kosId;
+  // const kosId = params.kosId;
   const router = useRouter();
   const [kosDetail, setKosDetail] = useState<KosDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [duration, setDuration] = useState("1");
   const [startDate, setStartDate] = useState<Date>(new Date());
+  const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
+
+  const fetchOwnerEmail = async (ownerId: string) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const token = localStorage.getItem("token");
+
+      if (!token || !ownerId) return;
+
+      const response = await fetch(`${API_URL}/owners/${ownerId}/email`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const email = await response.text();
+        setOwnerEmail(email);
+      } else {
+        console.error("Failed to fetch owner email");
+        setOwnerEmail("Email tidak tersedia");
+      }
+    } catch (error) {
+      console.error("Error fetching owner email:", error);
+      setOwnerEmail("Error saat mengambil email");
+    }
+  };
 
   useEffect(() => {
     const fetchKosDetail = async () => {
@@ -59,7 +86,7 @@ export default function KosDetailPage({
           return;
         }
 
-        const response = await fetch(`${API_URL}/management/${params.kosId}`, {
+        const response = await fetch(`${API_URL}/management/${kosId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -80,12 +107,26 @@ export default function KosDetailPage({
     };
 
     fetchKosDetail();
-  }, [params.kosId, router]);
+  }, [kosId, router]);
+
+  useEffect(() => {
+    if (kosDetail?.ownerId) {
+      fetchOwnerEmail(kosDetail.ownerId);
+    }
+  }, [kosDetail]);
 
   const handleBooking = async () => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+
+      // Check if userId exists
+      if (!userId) {
+        toast.error("User ID tidak ditemukan. Silakan login kembali.");
+        router.push("/login");
+        return;
+      }
 
       if (!token) {
         router.push("/login");
@@ -93,11 +134,14 @@ export default function KosDetailPage({
       }
 
       const bookingData = {
-        kosId: params.kosId,
+        kosId: kosId,
         duration: parseInt(duration),
         startDate: startDate.toISOString().split("T")[0],
-        userId: localStorage.getItem("userId"),
+        userId: userId,
       };
+
+      //debug
+      console.log("Sending booking data:", bookingData);
 
       const response = await fetch(`${API_URL}/bookings`, {
         method: "POST",
@@ -143,7 +187,7 @@ export default function KosDetailPage({
   }
 
   const totalPrice = kosDetail.price * parseInt(duration);
-
+  console.log(kosDetail.available);
   return (
     <div className="max-w-6xl mx-auto p-6">
       <Button
@@ -160,61 +204,25 @@ export default function KosDetailPage({
           <div className="mb-6">
             <div className="h-96 overflow-hidden rounded-lg mb-2">
               <img
-                src={
-                  kosDetail.imageUrls?.[activeImageIndex] ||
-                  "/images/kos-default.jpg"
-                }
+                src="/images/kos-default.jpg"
                 alt={kosDetail.name}
                 className="w-full h-full object-cover"
               />
             </div>
-            {kosDetail.imageUrls && kosDetail.imageUrls.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {kosDetail.imageUrls.map((url, index) => (
-                  <img
-                    key={index}
-                    src={url}
-                    alt={`${kosDetail.name} image ${index + 1}`}
-                    className={`h-20 w-20 object-cover cursor-pointer rounded-md ${
-                      index === activeImageIndex
-                        ? "border-2 border-green-600"
-                        : "opacity-70"
-                    }`}
-                    onClick={() => setActiveImageIndex(index)}
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           <h1 className="text-3xl font-bold text-green-700 mb-2">
             {kosDetail.name}
           </h1>
-          <p className="text-gray-600 mb-4">{kosDetail.location}</p>
+          <p className="text-gray-600 mb-4">{kosDetail.address}</p>
 
           <h2 className="text-xl font-semibold mb-2">Deskripsi</h2>
           <p className="text-gray-700 mb-6">{kosDetail.description}</p>
 
-          <h2 className="text-xl font-semibold mb-2">Fasilitas</h2>
-          <div className="flex flex-wrap gap-2 mb-6">
-            {kosDetail.facilities?.map((facility, index) => (
-              <span
-                key={index}
-                className="bg-green-100 text-green-800 px-3 py-1 rounded-full"
-              >
-                {facility}
-              </span>
-            ))}
-          </div>
-
-          <h2 className="text-xl font-semibold mb-2">Peraturan Kos</h2>
-          <ul className="list-disc list-inside text-gray-700 mb-6">
-            {kosDetail.rules?.map((rule, index) => <li key={index}>{rule}</li>)}
-          </ul>
-
           <h2 className="text-xl font-semibold mb-2">Informasi Pemilik</h2>
-          <p className="text-gray-700">Nama: {kosDetail.ownerName}</p>
-          <p className="text-gray-700 mb-6">Kontak: {kosDetail.ownerPhone}</p>
+          <p className="text-gray-700 mb-6">
+            Email: {ownerEmail || "Memuat..."}
+          </p>
         </div>
 
         {/* Kanan: Booking Form */}
@@ -229,10 +237,8 @@ export default function KosDetailPage({
 
               <p className="text-sm text-gray-500 mb-4">
                 Status:{" "}
-                {kosDetail.availability > 0 ? (
-                  <span className="text-green-600 font-medium">
-                    Tersedia ({kosDetail.availability} kamar)
-                  </span>
+                {kosDetail.available ? (
+                  <span className="text-green-600 font-medium">Tersedia</span>
                 ) : (
                   <span className="text-red-600 font-medium">
                     Tidak tersedia
@@ -306,12 +312,10 @@ export default function KosDetailPage({
 
               <Button
                 className="w-full bg-green-600 hover:bg-green-700"
-                disabled={kosDetail.availability === 0}
+                disabled={!kosDetail.available}
                 onClick={handleBooking}
               >
-                {kosDetail.availability === 0
-                  ? "Kos Tidak Tersedia"
-                  : "Pesan Sekarang"}
+                {!kosDetail.available ? "Kos Tidak Tersedia" : "Pesan Sekarang"}
               </Button>
             </CardContent>
           </Card>
