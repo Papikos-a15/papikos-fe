@@ -48,6 +48,8 @@ export default function KosDetailPage({
   const [duration, setDuration] = useState("1");
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   const fetchOwnerEmail = async (ownerId: string) => {
     try {
@@ -132,16 +134,28 @@ export default function KosDetailPage({
         router.push("/login");
         return;
       }
+      // Validate form fields
+      if (!fullName.trim()) {
+        toast.error("Nama lengkap harus diisi");
+        return;
+      }
+
+      if (!phoneNumber.trim()) {
+        toast.error("Nomor telepon harus diisi");
+        return;
+      }
 
       const bookingData = {
         kosId: kosId,
         duration: parseInt(duration),
-        startDate: startDate.toISOString().split("T")[0],
+        checkInDate: startDate.toISOString().split("T")[0],
         userId: userId,
+        fullName: fullName,
+        phoneNumber: phoneNumber,
       };
 
       //debug
-      console.log("Sending booking data:", bookingData);
+      console.log("Sending booking data:");
 
       const response = await fetch(`${API_URL}/bookings`, {
         method: "POST",
@@ -247,6 +261,31 @@ export default function KosDetailPage({
               </p>
 
               <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Nama Lengkap Pemesan
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Masukkan nama lengkap"
+                    className="w-full border rounded-md p-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Nomor Telepon
+                  </label>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Masukkan nomor telepon"
+                    className="w-full border rounded-md p-2"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Durasi (bulan)
