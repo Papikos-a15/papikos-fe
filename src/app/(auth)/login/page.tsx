@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const res = await fetch("http://localhost:8080/auth/login", {
+    const res = await fetch("http://localhost:8080/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
@@ -28,8 +28,11 @@ export default function LoginPage() {
 
     const data = await res.json()
     localStorage.setItem("token", data.token)
+
+    sessionStorage.setItem("userId", data.userId);
+
     toast.success("Login berhasil!")
-    router.push("/dashboard")
+    router.push("/payments")
   }
 
   return (
