@@ -9,10 +9,13 @@ import { toast } from 'sonner'
 export default function Navbar() {
   const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
+    const storedRole = localStorage.getItem('role')
     setIsLoggedIn(!!token)
+    setRole(storedRole)
   }, [])
 
   const handleLogout = async () => {
@@ -32,31 +35,51 @@ export default function Navbar() {
       console.error('Logout gagal:', err)
     }
 
-    localStorage.removeItem('token')
-    localStorage.removeItem('userId')
-    localStorage.removeItem('role')
+    localStorage.clear()
     setIsLoggedIn(false)
+    setRole(null)
     toast.success("Logout berhasil!")
     router.push('/login')
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-md py-4 px-6 flex justify-between items-center">
+    <header className="sticky top-0 z-50 bg-white shadow-md py-4 px-6 flex items-center justify-between">
+      {/* Kiri - Logo */}
       <Link href="/" className="text-2xl font-bold text-green-700">
         Papikos
       </Link>
 
-      <nav className="flex items-center gap-4">
-        {isLoggedIn ? (
+      {/* Tengah - Menu berdasarkan role */}
+      <nav className="hidden md:flex gap-6 text-sm text-gray-700 font-medium">
+        {isLoggedIn && role === 'TENANT' && (
           <>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="text-green-700 border-green-600 hover:bg-green-100"
-            >
-              Logout
-            </Button>
+            <Link href="/" className="hover:text-green-700">Beranda</Link>
+            <Link href="/kos" className="hover:text-green-700">Eksplor Kos</Link>
+            <Link href="/booking" className="hover:text-green-700">Booking Saya</Link>
+            <Link href="/wishlist" className="hover:text-green-700">Wishlist</Link>
+            <Link href="/chat" className="hover:text-green-700">Chat</Link>
           </>
+        )}
+        {isLoggedIn && role === 'OWNER' && (
+          <>
+            <Link href="/" className="hover:text-green-700">Beranda</Link>
+            <Link href="/manage" className="hover:text-green-700">Kelola Kos</Link>
+            <Link href="/booking-request" className="hover:text-green-700">Permintaan Booking</Link>
+            <Link href="/chat" className="hover:text-green-700">Chat</Link>
+          </>
+        )}
+      </nav>
+
+      {/* Kanan - Auth Buttons */}
+      <div className="flex items-center gap-4">
+        {isLoggedIn ? (
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="text-green-700 border-green-600 hover:bg-green-100"
+          >
+            Logout
+          </Button>
         ) : (
           <>
             <Link href="/login">
@@ -69,7 +92,7 @@ export default function Navbar() {
             </Link>
           </>
         )}
-      </nav>
+      </div>
     </header>
   )
 }
