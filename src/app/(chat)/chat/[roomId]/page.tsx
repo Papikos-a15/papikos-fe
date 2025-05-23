@@ -8,6 +8,8 @@ import { toast } from 'sonner'
 import { Send, Pencil, Trash2, ArrowLeft } from 'lucide-react'
 import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Client } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 
 interface Message {
   id: string
@@ -29,17 +31,54 @@ export default function RoomChatPage() {
   const [editContent, setEditContent] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const stompClient = useRef<Client | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
+  const clientRef = useRef<Client | null>(null)
 
   useEffect(() => {
+    const socket = new SockJS('http://localhost:8080/ws')
     const id = localStorage.getItem('userId')
+    const token = localStorage.getItem('token')
     setUserId(id)
     fetchMessages()
+
+    const client = new Client({
+      webSocketFactory: () => socket,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
+      reconnectDelay: 5000,
+
+      onConnect: () => {
+        console.log('✅ WebSocket connected')
+        client.subscribe(`/queue/room.${roomId}`, (message) => {
+          const newMsg = JSON.parse(message.body)
+          setMessages((prev) => [...prev, newMsg])
+          scrollToBottom()
+        })
+        clientRef.current = client
+        setIsConnected(true)
+      },
+      onStompError: (frame) => {
+        console.error('STOMP Error:', frame)
+        setIsConnected(false)
+      },
+      onWebSocketClose: () => {
+        console.warn('🔌 WebSocket disconnected')
+        setIsConnected(false)
+      },
+    })
+    client.activate()
+
+    return () => {
+      client.deactivate()
+    }
   }, [roomId])
 
   const fetchMessages = async () => {
     const token = localStorage.getItem('token')
     const res = await fetch(`${API_URL}/messages?roomId=${roomId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     })
     const data = await res.json()
     setMessages(data)
@@ -50,28 +89,28 @@ export default function RoomChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const handleSend = async () => {
-    const token = localStorage.getItem('token')
+  const handleSend = () => {
     const senderId = localStorage.getItem('userId')
     if (!newMessage.trim() || !senderId) return
 
-    await fetch(`${API_URL}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        roomChatId: roomId,
-        senderId,
-        content: newMessage,
-        sendType: 'TO_ONE'
-      })
-    })
+    const payload = {
+      roomChatId: roomId,
+      senderId,
+      content: newMessage,
+      sendType: 'TO_ONE',
+      role: 'TENANT',
+    }
 
-    toast.success("Pesan berhasil dikirim!")
-    setNewMessage('')
-    fetchMessages()
+    const client = clientRef.current
+    if (client && client.connected) {
+      client.publish({
+        destination: '/app/chat.send',
+        body: JSON.stringify(payload),
+      })
+      setNewMessage('')
+    } else {
+      toast.error('❌ Belum terhubung ke server WebSocket.')
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -85,9 +124,9 @@ export default function RoomChatPage() {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ newContent: editContent })
+      body: JSON.stringify({ newContent: editContent }),
     })
     setEditId(null)
     toast.success('Pesan berhasil diedit!')
@@ -99,9 +138,7 @@ export default function RoomChatPage() {
     const token = localStorage.getItem('token')
     await fetch(`${API_URL}/messages/${deleteId}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` },
     })
     setDeleteId(null)
     toast.success('Pesan berhasil dihapus!')
@@ -126,9 +163,7 @@ export default function RoomChatPage() {
                   />
                   <div className="relative group">
                     <div className={`rounded-xl px-4 py-3 max-w-[100%] break-words shadow-md ${
-                      isSelf
-                        ? 'bg-green-50 text-right'
-                        : 'bg-white border border-gray-300 text-left'
+                      isSelf ? 'bg-green-50 text-right' : 'bg-white border border-gray-300 text-left'
                     }`}>
                       <p>{msg.content}</p>
                     </div>
@@ -137,15 +172,23 @@ export default function RoomChatPage() {
                     </span>
                     {isSelf && (
                       <div className="absolute -bottom-6 right-0 flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                        <Button size="icon" variant="ghost" className="h-6 w-6 p-0"
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
                           onClick={() => {
                             setEditId(msg.id)
                             setEditContent(msg.content)
-                          }}>
+                          }}
+                        >
                           <Pencil size={14} />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-6 w-6 p-0"
-                          onClick={() => setDeleteId(msg.id)}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={() => setDeleteId(msg.id)}
+                        >
                           <Trash2 size={14} />
                         </Button>
                       </div>
@@ -182,8 +225,12 @@ export default function RoomChatPage() {
             <DialogTitle className="text-lg font-semibold">Edit Pesan</DialogTitle>
             <Input value={editContent} onChange={(e) => setEditContent(e.target.value)} />
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-              <Button className="bg-green-700" onClick={handleEditSave}>Simpan</Button>
+              <Button variant="ghost" onClick={() => setEditId(null)}>
+                Batal
+              </Button>
+              <Button className="bg-green-700" onClick={handleEditSave}>
+                Simpan
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -192,10 +239,16 @@ export default function RoomChatPage() {
         <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
           <DialogContent>
             <DialogTitle className="text-lg font-semibold">Hapus Pesan</DialogTitle>
-            <p className="text-sm text-gray-600">Pesan yang sudah dihapus tidak dapat dikembalikan.</p>
+            <p className="text-sm text-gray-600">
+              Pesan yang sudah dihapus tidak dapat dikembalikan.
+            </p>
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setDeleteId(null)}>Batal</Button>
-              <Button className="text-white"variant="destructive" onClick={handleDeleteConfirm}>Hapus</Button>
+              <Button variant="ghost" onClick={() => setDeleteId(null)}>
+                Batal
+              </Button>
+              <Button className="text-white" variant="destructive" onClick={handleDeleteConfirm}>
+                Hapus
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
