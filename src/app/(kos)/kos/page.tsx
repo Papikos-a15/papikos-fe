@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { FaHeart } from "react-icons/fa";
 
 interface KosListing {
   id: string;
@@ -121,6 +122,40 @@ export default function KosListingPage() {
       </>
     );
   }
+
+  const handleAddToWishlist = async (kosId: string) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+
+      if (!token || !userId) {
+        toast.error("Token atau User ID tidak tersedia");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/wishlists`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId, kosId }), // Include both userId and kosId
+      });
+
+      if (response.ok) {
+        toast.success("Kos berhasil ditambahkan ke wishlist");
+      } else {
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.message || "Gagal menambahkan kos ke wishlist";
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error adding to wishlist:", error);
+      toast.error("Terjadi kesalahan saat menambahkan ke wishlist");
+    }
+  };
+
 
   if (loading) {
     return (
@@ -254,12 +289,20 @@ export default function KosListingPage() {
                       </span>
                     )}
                   </div>
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleViewDetails(kos.id)}
-                  >
-                    Lihat Detail
-                  </Button>
+                  <div className="flex gap-4">
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => handleViewDetails(kos.id)}
+                    >
+                      Lihat Detail
+                    </Button>
+                    <Button
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      onClick={() => handleAddToWishlist(kos.id)}
+                    >
+                      <FaHeart className="inline-block text-white" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

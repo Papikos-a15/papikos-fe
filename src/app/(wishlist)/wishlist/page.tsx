@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,152 +6,135 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import { UUID } from "crypto";
 
-interface KosListing {
+interface WishlistItem {
   id: string;
+  kosId: string;
   name: string;
   location: string;
   price: number;
   availability: number;
-  facilities: string[];
   imageUrl: string;
   description: string;
 }
 
 export default function WishlistPage() {
   const router = useRouter();
-  const [kosListings, setKosListings] = useState<KosListing[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userId, setUserId] = useState<UUID | null>(null); // Assuming user ID will be stored or fetched
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
-    setUserId(localStorage.getItem("userId") as UUID); // Assuming you store user ID in localStorage
 
-    const fetchKosWishlist = async () => {
-  try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    const token = localStorage.getItem("token");
-
-    if (!token || !userId) {
+    if (!token) {
       setLoading(false);
       return;
     }
 
-    const response = await fetch(`${API_URL}/wishlists/user/${userId}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const fetchWishlist = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL;
+        const userId = localStorage.getItem("userId"); // Assuming userId is stored in localStorage
 
-    // Log the raw response for debugging
-    const rawResponse = await response.text();
-    console.log("Raw response:", rawResponse);
+        if (!userId) {
+          toast.error("User ID not found");
+          return;
+        }
 
-    // Check if the response is ok (status 200-299)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch: ${response.statusText}`);
-    }
+        // Fetch the wishlist (IDs of the kos in the wishlist)
+        const response = await fetch(`${API_URL}/wishlists/user/${userId}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-    // Parse the JSON only if the response is not empty
-    const data = rawResponse ? JSON.parse(rawResponse) : [];
-    setKosListings(data);
-  } catch (error) {
-    console.error("Error fetching wishlist:", error);
-    toast.error("Gagal mengambil data wishlist");
-  } finally {
-    setLoading(false);
-  }
-};
+        if (!response.ok && response.status !== 204) {
+          throw new Error("Failed to fetch wishlist");
+        }
 
-    fetchKosWishlist();
-  }, [userId]);
+        if (response.status !== 204) {
+          const data = await response.json();
+          // Fetch details for each kos in the wishlist
+          const wishlistWithDetails = await Promise.all(
+            data.map(async (wishlistItem: { id: string; kosId: string }) => {
+              const kosResponse = await fetch(
+                `${API_URL}/management/${wishlistItem.kosId}`,
+                {
+                  method: "GET",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
 
-  const handleViewDetails = (kosId: string) => {
-    router.push(`/booking/${kosId}`);
-  };
+              if (!kosResponse.ok) {
+                throw new Error("Failed to fetch kos details");
+              }
 
-  const handleAddToWishlist = async (kosId: string) => {
-    if (!userId) {
-      toast.error("User not logged in");
-      return;
-    }
+              const kosData = await kosResponse.json();
+              return {
+                ...wishlistItem,
+                name: kosData.name,
+                location: kosData.address, // assuming 'address' is the location
+                price: kosData.price,
+                description: kosData.description,
+                availability: kosData.availableRooms,
+                imageUrl: "", // You can add the image URL if available in your data
+              };
+            })
+          );
 
+          setWishlist(wishlistWithDetails);
+        } else {
+          toast.error("No wishlist data available");
+        }
+      } catch (error) {
+        console.error("Error fetching wishlist:", error);
+        toast.error("Gagal mengambil data wishlist");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishlist();
+  }, []);
+
+  const handleRemoveFromWishlist = async (wishlistId: string) => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const token = localStorage.getItem("token");
 
-      const response = await fetch(`${API_URL}/wishlists`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId,
-          kosId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add to wishlist");
+      if (!token) {
+        toast.error("Token tidak valid");
+        return;
       }
 
-      const data = await response.json();
-      toast.success(data.message);
-      setKosListings((prev) => [
-      ...prev,
-      {
-        id: kosId,
-        name: "", // Placeholder or you can fill this with the kos data if available
-        location: "",
-        price: 0,
-        availability: 0,
-        facilities: [],
-        imageUrl: "",
-        description: "",
-      },
-    ]);
-    } catch (error) {
-      console.error("Error adding to wishlist:", error);
-      toast.error("Gagal menambahkan ke wishlist");
-    }
-  };
-
-  const handleRemoveFromWishlist = async (kosId: string) => {
-    if (!userId) {
-      toast.error("User not logged in");
-      return;
-    }
-
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${API_URL}/wishlists/${kosId}`, {
+      const response = await fetch(`${API_URL}/wishlists/${wishlistId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to remove from wishlist");
+      if (response.ok) {
+        setWishlist((prevWishlist) =>
+          prevWishlist.filter((item) => item.id !== wishlistId)
+        );
+        toast.success("Kos berhasil dihapus dari wishlist");
+      } else {
+        throw new Error("Gagal menghapus kos dari wishlist");
       }
-
-      const data = await response.json();
-      toast.success(data.message);
-      setKosListings((prev) =>
-        prev.filter((kos) => kos.id !== kosId)
-      ); // Remove from state
     } catch (error) {
       console.error("Error removing from wishlist:", error);
-      toast.error("Gagal menghapus dari wishlist");
+      toast.error("Gagal menghapus kos dari wishlist");
     }
+  };
+
+  const handleViewDetails = (kosId: string) => {
+    router.push(`/booking/${kosId}`);
   };
 
   if (!isLoggedIn) {
@@ -160,27 +142,16 @@ export default function WishlistPage() {
       <>
         <Header />
         <div className="flex flex-col items-center justify-center p-10 min-h-[50vh] text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Akses Terbatas
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Akses Terbatas</h2>
           <p className="text-gray-600 mb-6">
-            Silakan login terlebih dahulu untuk melihat wishlist.
+            Silakan login terlebih dahulu untuk melihat wishlist Anda.
           </p>
-          <div className="flex gap-4">
-            <Button
-              onClick={() => router.push("/login")}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              Login
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => router.push("/")}
-              className="border-green-600 text-green-700 hover:bg-green-100"
-            >
-              Kembali ke Beranda
-            </Button>
-          </div>
+          <Button
+            onClick={() => router.push("/login")}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            Login
+          </Button>
         </div>
         <Footer />
       </>
@@ -191,7 +162,7 @@ export default function WishlistPage() {
     return (
       <>
         <Header />
-        <div className="p-10 text-center">Memuat data wishlist...</div>
+        <div className="p-10 text-center">Memuat wishlist...</div>
         <Footer />
       </>
     );
@@ -201,19 +172,15 @@ export default function WishlistPage() {
     <>
       <Header />
       <main className="max-w-7xl mx-auto p-6 min-h-screen">
-        <h1 className="text-3xl font-bold text-green-700 mb-6">Wishlist Anda</h1>
-
-        {kosListings.length === 0 ? (
+        <h1 className="text-3xl font-bold text-green-700 mb-6">Wishlist Kos Anda</h1>
+        {wishlist.length === 0 ? (
           <div className="text-center p-10 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">Wishlist Anda kosong.</p>
+            <p className="text-gray-500">Anda belum memiliki kos di wishlist.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {kosListings.map((kos) => (
-              <Card
-                key={kos.id}
-                className="overflow-hidden hover:shadow-lg transition-shadow"
-              >
+            {wishlist.map((kos) => (
+              <Card key={kos.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="h-48 overflow-hidden">
                   <img
                     src={kos.imageUrl || "/images/kos-default.jpg"}
@@ -222,42 +189,21 @@ export default function WishlistPage() {
                   />
                 </div>
                 <CardContent className="p-4">
-                  <h2 className="text-xl font-semibold text-green-700">
-                    {kos.name}
-                  </h2>
-                  {/* <p className="text-gray-600 mb-2">{kos.location}</p>
+                  <h2 className="text-xl font-semibold text-green-700">{kos.name}</h2>
+                  <p className="text-gray-600 mb-2">{kos.location}</p>
                   <p className="text-lg font-bold mb-2">
-                    Rp {kos.price.toLocaleString("id-ID")}/bulan
+                    Rp {kos.price ? kos.price.toLocaleString("id-ID") : "Harga tidak tersedia"}/bulan
                   </p>
-                  <p className="text-sm text-gray-700 mb-3 line-clamp-2">
-                    {kos.description}
-                  </p>
-                  <p className="text-sm text-gray-500 mb-3">
-                    Kamar tersedia: {kos.availability || "Tidak tersedia"}
-                  </p>
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {kos.facilities?.slice(0, 3).map((facility, index) => (
-                      <span
-                        key={index}
-                        className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"
-                      >
-                        {facility}
-                      </span>
-                    ))}
-                    {kos.facilities?.length > 3 && (
-                      <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
-                        +{kos.facilities.length - 3} lainnya
-                      </span>
-                    )}
-                  </div> */}
+                  <p className="text-sm text-gray-700 mb-3 line-clamp-2">{kos.description}</p>
                   <Button
                     className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleViewDetails(kos.id)}
+                    onClick={() => handleViewDetails(kos.kosId)}
                   >
                     Lihat Detail
                   </Button>
                   <Button
-                    className="w-full bg-red-600 hover:bg-red-700 mt-2"
+                    variant="outline"
+                    className="w-full mt-2 border-red-600 text-red-600 hover:bg-red-100"
                     onClick={() => handleRemoveFromWishlist(kos.id)}
                   >
                     Hapus dari Wishlist
