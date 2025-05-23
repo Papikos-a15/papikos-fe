@@ -68,14 +68,49 @@ export default function KosDetailPage({
         const email = await response.text();
         setOwnerEmail(email);
       } else {
-        console.error("Failed to fetch owner email");
         setOwnerEmail("Email tidak tersedia");
       }
     } catch (error) {
-      console.error("Error fetching owner email:", error);
       setOwnerEmail("Error saat mengambil email");
     }
   };
+
+  const handleOpenChat = async () => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const token = localStorage.getItem('token')
+    const senderId = localStorage.getItem('userId')
+
+    const body = {
+        penyewaId: senderId,
+        pemilikKosId: kosDetail?.ownerId,
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/roomchats`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Gagal membuka room: ${errText}`);
+      }
+
+      const roomChatId = await res.text();
+      if (!roomChatId || roomChatId.trim() === '') {
+        throw new Error("Room ID kosong. Server tidak mengembalikan ID.");
+      }
+      console.log('Room chat ID:', roomChatId)
+      router.push(`/chat/${roomChatId}`)
+    } catch (err) {
+      toast.error("Gagal membuka chat")
+      console.error(err)
+    }
+  }
 
   useEffect(() => {
     const fetchKosDetail = async () => {
@@ -237,6 +272,9 @@ export default function KosDetailPage({
           <p className="text-gray-700 mb-6">
             Email: {ownerEmail || "Memuat..."}
           </p>
+          <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleOpenChat(kosDetail.ownerId)}>
+            💬 Chat dengan Pemilik
+          </Button>
         </div>
 
         {/* Kanan: Booking Form */}

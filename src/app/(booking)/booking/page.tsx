@@ -379,7 +379,7 @@ export default function BookingsListPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-green-700">Daftar Booking</h1>
         <Button
-          onClick={() => router.push("/kos")}
+          onClick={() => router.push("/booking")}
           className="bg-green-600 hover:bg-green-700"
         >
           Cari Kos Baru
