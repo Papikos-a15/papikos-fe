@@ -3,9 +3,17 @@
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useEffect } from 'react'
 
 export default function ChooseRolePage() {
   const router = useRouter()
+
+  useEffect(() => {
+      const token = localStorage.getItem("token")
+      if (token) {
+        router.push("/")
+      }
+    }, [router])
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-100 via-white to-green-50 px-4">
@@ -44,6 +52,13 @@ export default function ChooseRolePage() {
             </CardContent>
           </Card>
         </div>
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/')}
+          className="mt-2 w-full text-green-700"
+        >
+          ← Kembali ke Beranda
+        </Button>
       </div>
     </main>
   )

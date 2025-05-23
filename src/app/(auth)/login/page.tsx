@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -8,14 +8,48 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import Link from "next/link"
 
+function decodeJWT(token: string) {
+  const base64Url = token.split('.')[1]
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  )
+  return JSON.parse(jsonPayload)
+}
+
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token")
+  //   if (token) {
+  //     try {
+  //       const decoded = decodeJWT(token)
+  //       const now = Date.now() / 1000
+  //       if (decoded.exp > now) {
+  //         // Already logged in
+  //         router.push(decoded.role === "ADMIN" ? "/admin" : "/")
+  //       } else {
+  //         localStorage.clear()
+  //       }
+  //     } catch {
+  //       localStorage.clear()
+  //     }
+  //   }
+  // }, [router])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const res = await fetch("http://localhost:8080/api/auth/login", {
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+    const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
@@ -27,12 +61,25 @@ export default function LoginPage() {
     }
 
     const data = await res.json()
-    localStorage.setItem("token", data.token)
+    const token = data.token
+    const userId = data.userId
+    console.log('token:', token);
+    console.log('userId:', userId);
 
-    sessionStorage.setItem("userId", data.userId);
+    const decodedToken = decodeJWT(token);
+
+    localStorage.setItem("token", token);
+    sessionStorage.setItem("userId", userId);
+    localStorage.setItem("role", decodedToken.role);
+    const role = decodedToken.role
 
     toast.success("Login berhasil!")
-    router.push("/payments")
+
+    if (role === "ADMIN") {
+      router.push("/admin")
+    } else {
+      router.push("/")
+    }
   }
 
   return (
@@ -40,7 +87,11 @@ export default function LoginPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 shadow-xl bg-white rounded-xl overflow-hidden w-full max-w-4xl">
         {/* Kiri: Ilustrasi atau branding */}
         <div className="hidden md:flex items-center justify-center bg-green-600">
-          <h2 className="text-4xl font-bold text-green-700"></h2>
+          <img
+            src="/images/login.png"
+            alt="Login Illustration"
+            className="w-full h-full object-cover"
+          />
         </div>
 
         {/* Kanan: Form Login */}
@@ -85,6 +136,14 @@ export default function LoginPage() {
               Register
             </Link>
           </p>
+
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/')}
+            className="mt-2 w-full text-green-700"
+          >
+            ← Kembali ke Beranda
+          </Button>
         </div>
       </div>
     </main>
