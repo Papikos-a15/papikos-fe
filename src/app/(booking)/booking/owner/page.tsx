@@ -34,7 +34,7 @@ export default function OwnerBookingsPage() {
         const API_URL = process.env.NEXT_PUBLIC_API_URL;
         const token = localStorage.getItem("token");
         const userRole = localStorage.getItem("role"); // Match login page storage key
-        const userId = localStorage.getItem("userId");
+        const userId = sessionStorage.getItem("userId");
 
         if (!token) {
           router.push("/login");

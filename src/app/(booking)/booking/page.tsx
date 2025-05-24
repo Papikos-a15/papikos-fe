@@ -76,6 +76,12 @@ export default function BookingsListPage() {
   const [editingBooking, setEditingBooking] = useState<EditableBooking | null>(
     null,
   );
+  const formatDateToLocal = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -246,7 +252,7 @@ export default function BookingsListPage() {
         // Update the fields from the form
         fullName: editingBooking.fullName,
         phoneNumber: editingBooking.phoneNumber,
-        checkInDate: editingBooking.checkInDate.toISOString().split("T")[0],
+        checkInDate: formatDateToLocal(editingBooking.checkInDate),
         duration: parseInt(editingBooking.duration),
         monthlyPrice: originalBooking.monthlyPrice || 0,
       };
@@ -277,16 +283,16 @@ export default function BookingsListPage() {
         prevBookings.map((booking) =>
           booking.bookingId === editingBooking.bookingId
             ? {
-              ...booking,
-              fullName: editingBooking.fullName,
-              phoneNumber: editingBooking.phoneNumber,
-              checkInDate: editingBooking.checkInDate
-                .toISOString()
-                .split("T")[0],
-              duration: parseInt(editingBooking.duration),
-              totalPrice:
-                parseInt(editingBooking.duration) * updateData.monthlyPrice,
-            }
+                ...booking,
+                fullName: editingBooking.fullName,
+                phoneNumber: editingBooking.phoneNumber,
+                checkInDate: editingBooking.checkInDate
+                  .toISOString()
+                  .split("T")[0],
+                duration: parseInt(editingBooking.duration),
+                totalPrice:
+                  parseInt(editingBooking.duration) * updateData.monthlyPrice,
+              }
             : booking,
         ),
       );
@@ -397,14 +403,15 @@ export default function BookingsListPage() {
                       `Kos ID: ${booking.kosId.substring(0, 8)}...`}
                   </h2>
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${booking.status === "PENDING"
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      booking.status === "PENDING"
                         ? "bg-yellow-100 text-yellow-800"
                         : booking.status === "CONFIRMED"
                           ? "bg-green-100 text-green-800"
                           : booking.status === "CANCELLED"
                             ? "bg-red-100 text-red-800"
                             : "bg-gray-100 text-gray-800"
-                      }`}
+                    }`}
                   >
                     {booking.status}
                   </span>
@@ -463,25 +470,25 @@ export default function BookingsListPage() {
                     {/* Only show Edit button when status is PAID or PENDING_PAYMENT */}
                     {(booking.status === "PAID" ||
                       booking.status === "PENDING_PAYMENT") && (
-                        <Button
-                          variant="outline"
-                          onClick={() => handleOpenEditModal(booking)}
-                        >
-                          Edit
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        onClick={() => handleOpenEditModal(booking)}
+                      >
+                        Edit
+                      </Button>
+                    )}
 
                     {/* Only show Delete button when status is PAID or PENDING_PAYMENT */}
                     {(booking.status === "PAID" ||
                       booking.status === "PENDING_PAYMENT") && (
-                        <Button
-                          variant="outline"
-                          className="border-red-800 text-red-800 hover:bg-red-800 hover:text-white"
-                          onClick={() => handleCancelBooking(booking.bookingId)}
-                        >
-                          Hapus
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        className="border-red-800 text-red-800 hover:bg-red-800 hover:text-white"
+                        onClick={() => handleCancelBooking(booking.bookingId)}
+                      >
+                        Hapus
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
