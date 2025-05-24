@@ -15,7 +15,7 @@ interface Filters {
 }
 
 export default function KosList() {
-  const ownerId = localStorage.getItem("userId") || "";
+  const ownerId = sessionStorage.getItem("userId") || "";
   const [filters, setFilters] = useState<Filters>({
     search: "",
     sortBy: "name",

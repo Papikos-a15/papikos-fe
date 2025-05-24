@@ -78,7 +78,7 @@ export default function KosDetailPage({
   const handleOpenChat = async () => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
     const token = localStorage.getItem("token");
-    const senderId = localStorage.getItem("userId");
+    const senderId = sessionStorage.getItem("userId");
 
     const body = {
       penyewaId: senderId,

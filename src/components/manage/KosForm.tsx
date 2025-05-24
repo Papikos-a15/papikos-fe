@@ -30,7 +30,7 @@ const KosForm: React.FC<KosFormProps> = ({
   const isUpdate = Boolean(initialData);
 
   useEffect(() => {
-    setUserId(localStorage.getItem("userId") || "");
+    setUserId(sessionStorage.getItem("userId") || "");
   }, []);
 
   const [formData, setFormData] = useState({
