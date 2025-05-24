@@ -5,18 +5,49 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { BellIcon } from '@heroicons/react/24/outline'
 
 export default function Navbar() {
   const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [role, setRole] = useState<string | null>(null)
+  const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [notifications, setNotifications] = useState<any[]>([])
 
   useEffect(() => {
     const token = localStorage.getItem('token')
     const storedRole = localStorage.getItem('role')
     setIsLoggedIn(!!token)
     setRole(storedRole)
-  }, [])
+    const userId = sessionStorage.getItem('userId') // Assuming user ID is stored in localStorage
+
+    if (isLoggedIn && userId) {
+      fetchNotifications(userId)
+    }
+  }, [isLoggedIn, role])
+
+  const fetchNotifications = async (userId: string) => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL
+    const token = localStorage.getItem('token')
+
+    try {
+      const response = await fetch(`${API_URL}/notifications/user/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setNotifications(data)
+
+        const unread = data.filter((notification: any) => !notification.read).length
+        setUnreadCount(unread)
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error)
+    }
+  }
 
   const handleLogout = async () => {
     const token = localStorage.getItem('token')
@@ -74,13 +105,30 @@ export default function Navbar() {
       {/* Kanan - Auth Buttons */}
       <div className="flex items-center gap-4">
         {isLoggedIn ? (
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="text-green-700 border-green-600 hover:bg-green-100"
-          >
-            Logout
-          </Button>
+          <>
+            {/* Notification Button */}
+            <Link href="/notification">
+              <Button
+                variant="ghost"
+                className="text-gray-700 hover:bg-gray-100 relative"
+              >
+                <BellIcon className="w-6 h-6" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
+            {/* Logout Button */}
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="text-green-700 border-green-600 hover:bg-green-100"
+            >
+              Logout
+            </Button>
+          </>
         ) : (
           <>
             <Link href="/login">
