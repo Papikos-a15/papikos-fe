@@ -9,33 +9,40 @@ import { toast } from "sonner"
 import Link from "next/link"
 
 function decodeJWT(token: string) {
-  const base64Url = token.split('.')[1]; 
-  const base64 = base64Url.replace('-', '+').replace('_', '/');
-  const jsonPayload = atob(base64);  
-  return JSON.parse(jsonPayload);  
+  const base64Url = token.split('.')[1]
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  )
+  return JSON.parse(jsonPayload)
 }
+
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    
-    if (token) {
-      const decodedToken = decodeJWT(token)
-      const role = decodedToken.role
-
-
-      if (role === "ADMIN") {
-        router.push("/admin")
-      } else {
-        router.push("/")
-      }
-    }
-  }, [router])
-  
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token")
+  //   if (token) {
+  //     try {
+  //       const decoded = decodeJWT(token)
+  //       const now = Date.now() / 1000
+  //       if (decoded.exp > now) {
+  //         // Already logged in
+  //         router.push(decoded.role === "ADMIN" ? "/admin" : "/")
+  //       } else {
+  //         localStorage.clear()
+  //       }
+  //     } catch {
+  //       localStorage.clear()
+  //     }
+  //   }
+  // }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,14 +60,17 @@ export default function LoginPage() {
       return
     }
 
-    const data = await res.json() 
+    const data = await res.json()
     const token = data.token
+    const userId = data.userId
+    console.log('token:', token);
+    console.log('userId:', userId);
 
-    const decodedToken = decodeJWT(token);  
+    const decodedToken = decodeJWT(token);
 
-    localStorage.setItem("token", token); 
-    localStorage.setItem("userId", decodedToken.userId);  
-    localStorage.setItem("role", decodedToken.role);  
+    localStorage.setItem("token", token);
+    sessionStorage.setItem("userId", userId);
+    localStorage.setItem("role", decodedToken.role);
     const role = decodedToken.role
 
     toast.success("Login berhasil!")
