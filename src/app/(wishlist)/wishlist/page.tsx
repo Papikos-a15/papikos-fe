@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { FaHeart } from "react-icons/fa";
 
 interface WishlistItem {
   id: string;
@@ -195,19 +196,25 @@ export default function WishlistPage() {
                     Rp {kos.price ? kos.price.toLocaleString("id-ID") : "Harga tidak tersedia"}/bulan
                   </p>
                   <p className="text-sm text-gray-700 mb-3 line-clamp-2">{kos.description}</p>
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleViewDetails(kos.kosId)}
-                  >
-                    Lihat Detail
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full mt-2 border-red-600 text-red-600 hover:bg-red-100"
-                    onClick={() => handleRemoveFromWishlist(kos.id)}
-                  >
-                    Hapus dari Wishlist
-                  </Button>
+                  <div className="flex gap-4">
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => handleViewDetails(kos.kosId)}
+                    >
+                      Lihat Detail
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full bg-red-600 text-white"
+                      onClick={() => handleRemoveFromWishlist(kos.id)}
+                    >
+                      <FaHeart
+                        className="inline-block text-white"
+                        style={{ width: '20px', height: '20px' }}
+                      />
+                      <span className="ml-2">Hapus Wishlist</span>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

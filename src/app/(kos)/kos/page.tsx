@@ -21,6 +21,12 @@ interface KosListing {
   description: string;
 }
 
+interface WishlistItem {
+  kosId: string;
+  userId: string;
+  id: string;
+}
+
 export default function KosListingPage() {
   const router = useRouter();
   const [kosListings, setKosListings] = useState<KosListing[]>([]);
@@ -28,6 +34,8 @@ export default function KosListingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [priceFilter, setPriceFilter] = useState("all");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userWishlist, setUserWishlist] = useState<WishlistItem[]>([]);
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -43,6 +51,7 @@ export default function KosListingPage() {
           return;
         }
 
+        // Fetch Kos Listings
         const response = await fetch(`${API_URL}/management/list`, {
           method: "GET",
           headers: {
@@ -61,6 +70,24 @@ export default function KosListingPage() {
 
         const data = await response.json();
         setKosListings(data);
+
+        // Fetch Wishlist of logged-in user
+        const userId = localStorage.getItem("userId");
+        if (userId) {
+          const wishlistResponse = await fetch(`${API_URL}/wishlists/user/${userId}`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (wishlistResponse.status === 204) {
+            setUserWishlist([]);
+          } else {
+            const wishlistData = await wishlistResponse.json();
+            setUserWishlist(wishlistData);
+          }
+        }
       } catch (error) {
         console.error("Error fetching kos listings:", error);
         toast.error("Gagal mengambil data kos");
@@ -140,11 +167,17 @@ export default function KosListingPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ userId, kosId }), // Include both userId and kosId
+        body: JSON.stringify({ userId, kosId }),
       });
 
       if (response.ok) {
+        const wishlistData = await response.json();
         toast.success("Kos berhasil ditambahkan ke wishlist");
+
+        setUserWishlist((prev) => [
+          ...prev,
+          { kosId, userId, id: wishlistData.id },
+        ]);
       } else {
         const errorData = await response.json().catch(() => null);
         const errorMessage = errorData?.message || "Gagal menambahkan kos ke wishlist";
@@ -153,6 +186,44 @@ export default function KosListingPage() {
     } catch (error) {
       console.error("Error adding to wishlist:", error);
       toast.error("Terjadi kesalahan saat menambahkan ke wishlist");
+    }
+  };
+
+  const handleRemoveFromWishlist = async (kosId: string) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+
+      if (!token || !userId) {
+        toast.error("Token atau User ID tidak tersedia");
+        return;
+      }
+
+      const wishlistItem = userWishlist.find((item) => item.kosId === kosId);
+      if (!wishlistItem) {
+        toast.error("Kos tidak ada di wishlist");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/wishlists/${wishlistItem.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast.success("Kos berhasil dihapus dari wishlist");
+
+        setUserWishlist((prev) => prev.filter((item) => item.kosId !== kosId));
+      } else {
+        toast.error("Gagal menghapus kos dari wishlist");
+      }
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+      toast.error("Terjadi kesalahan saat menghapus dari wishlist");
     }
   };
 
@@ -248,7 +319,11 @@ export default function KosListingPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredKosListings.map((kos) => (
+            {filteredKosListings.map((kos) => {
+              const isInWishlist = userWishlist.some(
+                (wishlist) => wishlist.kosId === kos.id
+              );
+              return (
               <Card
                 key={kos.id}
                 className="overflow-hidden hover:shadow-lg transition-shadow"
@@ -297,15 +372,20 @@ export default function KosListingPage() {
                       Lihat Detail
                     </Button>
                     <Button
-                      className="w-full bg-red-600 hover:bg-red-700"
-                      onClick={() => handleAddToWishlist(kos.id)}
+                      className={`w-full ${isInWishlist ? 'bg-red-600 text-white' : 'bg-white border-2 border-red-600 text-red-600'}`}
+                      onClick={() => isInWishlist ? handleRemoveFromWishlist(kos.id) : handleAddToWishlist(kos.id)}
                     >
-                      <FaHeart className="inline-block text-white" />
+                      <FaHeart 
+                        className={`inline-block ${isInWishlist ? 'text-white' : 'border-red-600 text-red-600'}`} 
+                        style={{ width: '20px', height: '20px' }} 
+                      />
+                      <span className="ml-2">Wishlist</span>
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
