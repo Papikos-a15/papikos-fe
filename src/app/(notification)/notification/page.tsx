@@ -41,12 +41,15 @@ export default function NotificationsPage() {
           return;
         }
 
-        const response = await fetch(`${API_URL}/notifications/user/${userId}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const response = await fetch(
+          `${API_URL}/notifications/user/${userId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
 
         if (!response.ok && response.status !== 204) {
           throw new Error("Failed to fetch notifications");
@@ -79,20 +82,23 @@ export default function NotificationsPage() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${API_URL}/notifications/${notificationId}/read`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (response.ok) {
         setNotifications((prevNotifications) =>
           prevNotifications.map((notification) =>
             notification.id === notificationId
               ? { ...notification, read: true }
-              : notification
-          )
+              : notification,
+          ),
         );
         toast.success("Notification marked as read");
       } else {
@@ -118,7 +124,9 @@ export default function NotificationsPage() {
       <>
         <Header />
         <div className="flex flex-col items-center justify-center p-10 min-h-[50vh] text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Akses Terbatas</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Akses Terbatas
+          </h2>
           <p className="text-gray-600 mb-6">
             Silakan login terlebih dahulu untuk melihat notifikasi Anda.
           </p>
@@ -148,14 +156,16 @@ export default function NotificationsPage() {
     filter === "all"
       ? notifications
       : notifications.filter((notification) =>
-          filter === "read" ? notification.read : !notification.read
+          filter === "read" ? notification.read : !notification.read,
         );
 
   return (
     <>
       <Header />
       <main className="max-w-7xl mx-auto p-6 min-h-screen">
-        <h1 className="text-3xl font-bold text-green-700 mb-6">Notifikasi Anda</h1>
+        <h1 className="text-3xl font-bold text-green-700 mb-6">
+          Notifikasi Anda
+        </h1>
         <div className="mb-4">
           <Button
             onClick={() => handleFilterChange("all")}
@@ -189,8 +199,12 @@ export default function NotificationsPage() {
                 className={`overflow-hidden ${notification.read ? "bg-gray-100" : "bg-white"} hover:shadow-lg transition-shadow`}
               >
                 <CardContent className="p-4">
-                  <h2 className="text-xl font-semibold text-green-700">{notification.title}</h2>
-                  <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+                  <h2 className="text-xl font-semibold text-green-700">
+                    {notification.title}
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {notification.message}
+                  </p>
                   <Button
                     className="w-full bg-green-600 hover:bg-green-700"
                     onClick={() => handleViewNotification(notification.id)}

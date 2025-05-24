@@ -89,6 +89,7 @@ export default function Navbar() {
             <Link href="/booking" className="hover:text-green-700">Booking Saya</Link>
             <Link href="/wishlist" className="hover:text-green-700">Wishlist</Link>
             <Link href="/chat" className="hover:text-green-700">Chat</Link>
+            <Link href="/transactions" className="hover:text-green-700">Riwayat</Link>
           </>
         )}
         {isLoggedIn && role === 'OWNER' && (

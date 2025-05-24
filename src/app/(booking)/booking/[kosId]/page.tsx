@@ -71,29 +71,29 @@ export default function KosDetailPage({
         setOwnerEmail("Email tidak tersedia");
       }
     } catch (error) {
-      setOwnerEmail("Error saat mengambil email");
+      setOwnerEmail(`Error saat mengambil email ${error}`);
     }
   };
 
   const handleOpenChat = async () => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    const token = localStorage.getItem('token')
-    const senderId = localStorage.getItem('userId')
+    const token = localStorage.getItem("token");
+    const senderId = localStorage.getItem("userId");
 
     const body = {
-        penyewaId: senderId,
-        pemilikKosId: kosDetail?.ownerId,
-    }
+      penyewaId: senderId,
+      pemilikKosId: kosDetail?.ownerId,
+    };
 
     try {
       const res = await fetch(`${API_URL}/roomchats`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
-      })
+      });
 
       if (!res.ok) {
         const errText = await res.text();
@@ -101,16 +101,16 @@ export default function KosDetailPage({
       }
 
       const roomChatId = await res.text();
-      if (!roomChatId || roomChatId.trim() === '') {
+      if (!roomChatId || roomChatId.trim() === "") {
         throw new Error("Room ID kosong. Server tidak mengembalikan ID.");
       }
-      console.log('Room chat ID:', roomChatId)
-      router.push(`/chat/${roomChatId}`)
+      console.log("Room chat ID:", roomChatId);
+      router.push(`/chat/${roomChatId}`);
     } catch (err) {
-      toast.error("Gagal membuka chat")
-      console.error(err)
+      toast.error("Gagal membuka chat");
+      console.error(err);
     }
-  }
+  };
 
   useEffect(() => {
     const fetchKosDetail = async () => {
@@ -151,18 +151,23 @@ export default function KosDetailPage({
       fetchOwnerEmail(kosDetail.ownerId);
     }
   }, [kosDetail]);
-
+  const formatDateToLocal = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
   const handleBooking = async () => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const token = localStorage.getItem("token");
-      const userId = localStorage.getItem("userId");
+      const userId = sessionStorage.getItem("userId");
 
       // Check if userId exists
       if (!userId) {
         toast.error("User ID tidak ditemukan. Silakan login kembali.");
-        router.push("/login");
-        return;
+        // router.push("/login");
+        // return;
       }
 
       if (!token) {
@@ -183,7 +188,7 @@ export default function KosDetailPage({
       const bookingData = {
         kosId: kosId,
         duration: parseInt(duration),
-        checkInDate: startDate.toISOString().split("T")[0],
+        checkInDate: formatDateToLocal(startDate),
         userId: userId,
         fullName: fullName,
         phoneNumber: phoneNumber,
@@ -202,13 +207,34 @@ export default function KosDetailPage({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to book kos");
+        // Handle different error status codes
+        if (response.status === 400) {
+          toast.error("Data booking tidak valid. Periksa kembali form.");
+        } else if (response.status === 403) {
+          toast.error("Tidak memiliki izin untuk melakukan booking ini.");
+        } else if (response.status === 404) {
+          toast.error("Kos tidak ditemukan.");
+        } else {
+          toast.error(`Error: ${response.status} - ${response.statusText}`);
+        }
+
+        // Try to get error message from response if available
+        try {
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
+          if (errorText) {
+            toast.error(`Server error: ${errorText}`);
+          }
+        } catch (parseError) {
+          console.error("Could not parse error response:", parseError);
+        }
+
+        return;
       }
 
-      const data = await response.json();
+      // const data = await response.json();
       toast.success("Booking berhasil dibuat!");
-      router.push(`/booking/confirmation/${data.id}`);
+      router.push(`/booking/`);
     } catch (error) {
       console.error("Error booking kos:", error);
       toast.error(
@@ -272,7 +298,10 @@ export default function KosDetailPage({
           <p className="text-gray-700 mb-6">
             Email: {ownerEmail || "Memuat..."}
           </p>
-          <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleOpenChat(kosDetail.ownerId)}>
+          <Button
+            className="bg-green-600 hover:bg-green-700"
+            onClick={() => handleOpenChat(kosDetail.ownerId)}
+          >
             💬 Chat dengan Pemilik
           </Button>
         </div>

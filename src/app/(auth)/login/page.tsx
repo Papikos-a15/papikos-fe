@@ -63,8 +63,6 @@ export default function LoginPage() {
     const data = await res.json()
     const token = data.token
     const userId = data.userId
-    console.log('token:', token);
-    console.log('userId:', userId);
 
     const decodedToken = decodeJWT(token);
 
