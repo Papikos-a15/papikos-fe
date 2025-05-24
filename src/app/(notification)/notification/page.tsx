@@ -34,7 +34,7 @@ export default function NotificationsPage() {
     const fetchNotifications = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL;
-        const userId = localStorage.getItem("userId");
+        const userId = sessionStorage.getItem("userId");
 
         if (!userId) {
           toast.error("User ID not found");
