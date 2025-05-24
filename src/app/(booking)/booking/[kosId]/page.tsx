@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarIcon } from "@radix-ui/react-icons";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import {
   Select,
@@ -14,12 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { use } from "react";
 
 interface KosDetail {
@@ -46,7 +38,11 @@ export default function KosDetailPage({
   const [loading, setLoading] = useState(true);
   // const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [duration, setDuration] = useState("1");
-  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  });
   const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -374,30 +370,18 @@ export default function KosDetailPage({
                   <label className="block text-sm font-medium mb-1">
                     Tanggal Mulai
                   </label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? (
-                          format(startDate, "PPP")
-                        ) : (
-                          <span>Pilih tanggal</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={(date) => date && setStartDate(date)}
-                        initialFocus
-                        disabled={(date) => date < new Date()}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <input
+                    type="date"
+                    value={formatDateToLocal(startDate)}
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      setStartDate(selectedDate);
+                    }}
+                    min={formatDateToLocal(
+                      new Date(Date.now() + 24 * 60 * 60 * 1000),
+                    )} // Minimal besok
+                    className="w-full border rounded-md p-2"
+                  />
                 </div>
               </div>
 
