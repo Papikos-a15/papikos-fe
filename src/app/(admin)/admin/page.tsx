@@ -30,7 +30,7 @@ const AdminDashboard = () => {
           },
         })
 
-        if (!res.ok) {
+        if (!res.ok && res.status !== 204) {
           throw new Error(`Failed to fetch data. Status: ${res.status}`)
         }
 
@@ -83,14 +83,15 @@ const AdminDashboard = () => {
           <h2 className="text-2xl font-bold text-green-700 mb-4">Papikos Admin</h2>
           <p
             className="text-gray-600 hover:text-gray-800 cursor-pointer transition-colors duration-200 mb-6"
-            onClick={() => {
-              const mainContent = document.getElementById("persetujuan-owner");
-              if (mainContent) {
-                mainContent.scrollIntoView({ behavior: "smooth" });
-              }
-            }}
+            onClick={() => router.push('/admin')}
           >
             Persetujuan Owner
+          </p>
+          <p
+            className="text-gray-600 hover:text-gray-800 cursor-pointer transition-colors duration-200 mb-6"
+            onClick={() => router.push('/admin/notification')}
+          >
+            Kirim Notifikasi
           </p>
         </div>
         <Button
