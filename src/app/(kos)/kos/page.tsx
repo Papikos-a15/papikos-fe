@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { FaHeart } from "react-icons/fa";
+import { UUID } from "crypto";
 
 interface KosListing {
   id: string;
@@ -24,7 +25,7 @@ interface KosListing {
 interface WishlistItem {
   kosId: string;
   userId: string;
-  id: string;
+  id: UUID;
 }
 
 export default function KosListingPage() {
@@ -174,10 +175,20 @@ export default function KosListingPage() {
         const wishlistData = await response.json();
         toast.success("Kos berhasil ditambahkan ke wishlist");
 
-        setUserWishlist((prev) => [
-          ...prev,
-          { kosId, userId, id: wishlistData.id },
-        ]);
+        const wishlistResponse = await fetch(`${API_URL}/wishlists/user/${userId}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (wishlistResponse.status === 204) {
+          setUserWishlist([]);
+        } else {
+          const wishlistData = await wishlistResponse.json();
+          setUserWishlist(wishlistData);
+        }
+
       } else {
         const errorData = await response.json().catch(() => null);
         const errorMessage = errorData?.message || "Gagal menambahkan kos ke wishlist";

@@ -37,7 +37,7 @@ export default function WishlistPage() {
     const fetchWishlist = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL;
-        const userId = localStorage.getItem("userId"); // Assuming userId is stored in localStorage
+        const userId = localStorage.getItem("userId");
 
         if (!userId) {
           toast.error("User ID not found");
