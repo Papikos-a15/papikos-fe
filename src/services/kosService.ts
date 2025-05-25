@@ -81,7 +81,7 @@ export const updateKos = async (
       "Content-Type": "application/json",
     },
   };
-  const response = await api.put(
+  const response = await api.patch(
     `${baseUrl}/management/update/${id}`,
     kos,
     config,
