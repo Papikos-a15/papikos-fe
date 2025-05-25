@@ -78,11 +78,9 @@ export default function RoomChatPage() {
   const fetchMessages = async () => {
     const token = localStorage.getItem('token')
     const res = await fetch(`${API_URL}/messages?roomId=${roomId}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {Authorization: `Bearer ${token}`},
     })
     if (!res.ok) {
-    const errorText = await res.text() // buat debug error response
-    console.error("Fetch error:", res.status, errorText)
     return
     }
     const data = await res.json()

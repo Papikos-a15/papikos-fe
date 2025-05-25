@@ -74,7 +74,7 @@ export default function KosDetailPage({
   const handleOpenChat = async () => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
     const token = localStorage.getItem("token");
-    const senderId = sessionStorage.getItem("userId");
+    const senderId = localStorage.getItem("userId");
 
     const body = {
       penyewaId: senderId,
@@ -100,8 +100,7 @@ export default function KosDetailPage({
       if (!roomChatId || roomChatId.trim() === "") {
         throw new Error("Room ID kosong. Server tidak mengembalikan ID.");
       }
-      console.log("Room chat ID:", roomChatId);
-      router.push(`/chat/${roomChatId}`);
+      router.push(`/chat/`);
     } catch (err) {
       toast.error("Gagal membuka chat");
       console.error(err);
@@ -157,7 +156,7 @@ export default function KosDetailPage({
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const token = localStorage.getItem("token");
-      const userId = sessionStorage.getItem("userId");
+      const userId = localStorage.getItem("userId");
 
       // Check if userId exists
       if (!userId) {
