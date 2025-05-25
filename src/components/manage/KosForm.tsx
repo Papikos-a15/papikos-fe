@@ -7,7 +7,7 @@ import { Loader2, Save, Trash2 } from "lucide-react";
 interface KosFormProps {
   initialData?: Kos;
   onSubmit: (
-    data: Omit<Kos, "id" | "availableRooms" | "isAvailable"> & {
+    data: Omit<Kos, "id" | "availableRooms" | "available"> & {
       ownerId: string;
       name: string;
       address: string;
@@ -30,7 +30,7 @@ const KosForm: React.FC<KosFormProps> = ({
   const isUpdate = Boolean(initialData);
 
   useEffect(() => {
-    setUserId(sessionStorage.getItem("userId") || "");
+    setUserId(localStorage.getItem("userId") || "");
   }, []);
 
   const [formData, setFormData] = useState({
