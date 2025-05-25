@@ -67,7 +67,7 @@ export default function LoginPage() {
     const decodedToken = decodeJWT(token);
 
     localStorage.setItem("token", token);
-    sessionStorage.setItem("userId", userId);
+    localStorage.setItem("userId", userId);
     localStorage.setItem("role", decodedToken.role);
     const role = decodedToken.role
 

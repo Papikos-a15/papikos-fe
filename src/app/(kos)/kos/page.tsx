@@ -110,7 +110,7 @@ export default function KosListingPage() {
       setKosListings(data);
 
       // Fetch Wishlist of logged-in user
-      const userId = sessionStorage.getItem("userId");
+      const userId = localStorage.getItem("userId");
       if (userId) {
         const wishlistResponse = await fetch(
           `${API_URL}/wishlists/user/${userId}`,
@@ -203,7 +203,7 @@ export default function KosListingPage() {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const token = localStorage.getItem("token");
-      const userId = sessionStorage.getItem("userId");
+      const userId = localStorage.getItem("userId");
 
       if (!token || !userId) {
         toast.error("Token atau User ID tidak tersedia");
@@ -255,7 +255,7 @@ export default function KosListingPage() {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const token = localStorage.getItem("token");
-      const userId = sessionStorage.getItem("userId");
+      const userId = localStorage.getItem("userId");
 
       if (!token || !userId) {
         toast.error("Token atau User ID tidak tersedia");

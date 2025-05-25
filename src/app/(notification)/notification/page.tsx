@@ -30,7 +30,7 @@ export default function NotificationsPage() {
   const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
-    const id = sessionStorage.getItem('userId'); // Grab userId
+    const id = localStorage.getItem('userId'); // Grab userId
     setUserId(id); // Set it in state
     if (!id) {
       console.error("User ID not found");
@@ -90,7 +90,7 @@ export default function NotificationsPage() {
     try {
       const token = localStorage.getItem('token')
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      const userId = sessionStorage.getItem("userId");
+      const userId = localStorage.getItem("userId");
 
       if (!userId) {
         toast.error("User ID not found");

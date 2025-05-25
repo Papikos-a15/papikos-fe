@@ -6,7 +6,7 @@ import { Kos } from "@/services/kosService";
 import { useKos } from "@/hooks/useKos";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 
 interface Filters {
   search: string;
@@ -15,6 +15,7 @@ interface Filters {
 }
 
 export default function KosList() {
+  const router = useRouter()
   const ownerId = sessionStorage.getItem("userId") || "";
   const [filters, setFilters] = useState<Filters>({
     search: "",

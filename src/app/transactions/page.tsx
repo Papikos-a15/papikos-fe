@@ -49,7 +49,7 @@ export default function PaymentsPage() {
             }
 
             try {
-                const userId = sessionStorage.getItem("userId");
+                const userId = localStorage.getItem("userId");
                 const res = await fetch(`http://localhost:8080/api/transactions/user/${userId}`, {
                     method: "GET",
                     headers: {
@@ -348,7 +348,7 @@ export default function PaymentsPage() {
                                     <Button
                                         onClick={async () => {
                                             const token = localStorage.getItem("token")
-                                            const userId = sessionStorage.getItem("userId")
+                                            const userId = localStorage.getItem("userId")
 
                                             if (!token || !userId) {
                                                 toast.error("You are not logged in.")

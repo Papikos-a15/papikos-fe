@@ -357,7 +357,7 @@ export default function BookingsListPage() {
       <div className="p-10 text-center">
         <p>{error}</p>
         <Button
-          onClick={() => router.push("/booking")}
+          onClick={() => router.push("/kos")}
           className="mt-4 bg-green-600 hover:bg-green-700"
         >
           Cari Kos
@@ -371,7 +371,7 @@ export default function BookingsListPage() {
       <div className="p-10 text-center">
         <p>Anda belum memiliki booking.</p>
         <Button
-          onClick={() => router.push("/booking")}
+          onClick={() => router.push("/kos")}
           className="mt-4 bg-green-600 hover:bg-green-700"
         >
           Cari Kos

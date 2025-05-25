@@ -19,7 +19,7 @@ export default function Navbar() {
     const storedRole = localStorage.getItem('role')
     setIsLoggedIn(!!token)
     setRole(storedRole)
-    const userId = sessionStorage.getItem('userId') // Assuming user ID is stored in localStorage
+    const userId = localStorage.getItem('userId') // Assuming user ID is stored in localStorage
 
     if (isLoggedIn && userId) {
       fetchNotifications(userId)
@@ -96,7 +96,7 @@ export default function Navbar() {
           <>
             <Link href="/" className="hover:text-green-700">Beranda</Link>
             <Link href="/manage" className="hover:text-green-700">Kelola Kos</Link>
-            <Link href="/booking-request" className="hover:text-green-700">Permintaan Booking</Link>
+            <Link href="/booking/owner" className="hover:text-green-700">Permintaan Booking</Link>
             <Link href="/chat" className="hover:text-green-700">Chat</Link>
           </>
         )}
