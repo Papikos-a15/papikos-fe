@@ -19,7 +19,7 @@ export default function AddKosPage() {
   const handleAdd = async (formData: AddKosPayload) => {
     try {
       await addKos(formData, token!);
-      router.push("/kos");
+      router.push("/manage");
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     } catch (err: any) {
       const serverMessage =
