@@ -248,9 +248,7 @@ export default function PaymentPage() {
       <div className="text-center">
         <Button
           variant="ghost"
-          onClick={() =>
-            router.push(`/booking/confirmation/${paymentDetails.bookingId}`)
-          }
+          onClick={() => router.push(`/booking`)}
           className="text-green-700"
         >
           ← Kembali ke Detail Booking
