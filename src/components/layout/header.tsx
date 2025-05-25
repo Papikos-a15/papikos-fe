@@ -1,77 +1,89 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { BellIcon } from '@heroicons/react/24/outline'
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { BellIcon } from "@heroicons/react/24/outline";
+
+interface Notification {
+  id: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  userId: string;
+  // Add other properties as needed
+}
 
 export default function Navbar() {
-  const router = useRouter()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [role, setRole] = useState<string | null>(null)
-  const [unreadCount, setUnreadCount] = useState<number>(0)
-  const [notifications, setNotifications] = useState<any[]>([])
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  // const [notifications, setNotifications] = useState<Notification[]>([])
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const storedRole = localStorage.getItem('role')
-    setIsLoggedIn(!!token)
-    setRole(storedRole)
-    const userId = localStorage.getItem('userId') // Assuming user ID is stored in localStorage
+    const token = localStorage.getItem("token");
+    const storedRole = localStorage.getItem("role");
+    setIsLoggedIn(!!token);
+    setRole(storedRole);
+    const userId = localStorage.getItem("userId"); // Assuming user ID is stored in localStorage
 
     if (isLoggedIn && userId) {
-      fetchNotifications(userId)
+      fetchNotifications(userId);
     }
-  }, [isLoggedIn, role])
+  }, [isLoggedIn, role]);
 
   const fetchNotifications = async (userId: string) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL
-    const token = localStorage.getItem('token')
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const token = localStorage.getItem("token");
 
     try {
       const response = await fetch(`${API_URL}/notifications/user/${userId}`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-      })
+      });
       if (response.ok) {
-        const data = await response.json()
-        setNotifications(data)
+        const data: Notification[] = await response.json();
 
-        const unread = data.filter((notification: any) => !notification.read).length
-        setUnreadCount(unread)
+        // Hapus setNotifications karena state tidak digunakan
+        // setNotifications(data)
+
+        // Fix: hapus any dan langsung gunakan typed data
+        const unread = data.filter((notification) => !notification.read).length;
+        setUnreadCount(unread);
       }
     } catch (error) {
-      console.error("Error fetching notifications:", error)
+      console.error("Error fetching notifications:", error);
     }
-  }
+  };
 
   const handleLogout = async () => {
-    const token = localStorage.getItem('token')
-    const API_URL = process.env.NEXT_PUBLIC_API_URL
+    const token = localStorage.getItem("token");
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-    if (!token) return
+    if (!token) return;
 
     try {
       await fetch(`${API_URL}/auth/logout`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-      })
+      });
     } catch (err) {
-      console.error('Logout gagal:', err)
+      console.error("Logout gagal:", err);
     }
 
-    localStorage.clear()
-    setIsLoggedIn(false)
-    setRole(null)
-    toast.success("Logout berhasil!")
-    router.push('/login')
-  }
+    localStorage.clear();
+    setIsLoggedIn(false);
+    setRole(null);
+    toast.success("Logout berhasil!");
+    router.push("/login");
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-md py-4 px-6 flex items-center justify-between">
@@ -82,22 +94,42 @@ export default function Navbar() {
 
       {/* Tengah - Menu berdasarkan role */}
       <nav className="hidden md:flex gap-6 text-sm text-gray-700 font-medium">
-        {isLoggedIn && role === 'TENANT' && (
+        {isLoggedIn && role === "TENANT" && (
           <>
-            <Link href="/" className="hover:text-green-700">Beranda</Link>
-            <Link href="/kos" className="hover:text-green-700">Eksplor Kos</Link>
-            <Link href="/booking" className="hover:text-green-700">Booking Saya</Link>
-            <Link href="/wishlist" className="hover:text-green-700">Wishlist</Link>
-            <Link href="/chat" className="hover:text-green-700">Chat</Link>
-            <Link href="/transactions" className="hover:text-green-700">Riwayat</Link>
+            <Link href="/" className="hover:text-green-700">
+              Beranda
+            </Link>
+            <Link href="/kos" className="hover:text-green-700">
+              Eksplor Kos
+            </Link>
+            <Link href="/booking" className="hover:text-green-700">
+              Booking Saya
+            </Link>
+            <Link href="/wishlist" className="hover:text-green-700">
+              Wishlist
+            </Link>
+            <Link href="/chat" className="hover:text-green-700">
+              Chat
+            </Link>
+            <Link href="/transactions" className="hover:text-green-700">
+              Riwayat
+            </Link>
           </>
         )}
-        {isLoggedIn && role === 'OWNER' && (
+        {isLoggedIn && role === "OWNER" && (
           <>
-            <Link href="/" className="hover:text-green-700">Beranda</Link>
-            <Link href="/manage" className="hover:text-green-700">Kelola Kos</Link>
-            <Link href="/booking/owner" className="hover:text-green-700">Permintaan Booking</Link>
-            <Link href="/chat" className="hover:text-green-700">Chat</Link>
+            <Link href="/" className="hover:text-green-700">
+              Beranda
+            </Link>
+            <Link href="/manage" className="hover:text-green-700">
+              Kelola Kos
+            </Link>
+            <Link href="/booking/owner" className="hover:text-green-700">
+              Permintaan Booking
+            </Link>
+            <Link href="/chat" className="hover:text-green-700">
+              Chat
+            </Link>
           </>
         )}
       </nav>
@@ -143,5 +175,5 @@ export default function Navbar() {
         )}
       </div>
     </header>
-  )
+  );
 }

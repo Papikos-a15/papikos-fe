@@ -28,7 +28,7 @@ interface KosDetail {
 export default function KosDetailPage({
   params,
 }: {
-  params: { kosId: string };
+  params: Promise<{ kosId: string }>;
 }) {
   const resolvedParams = use(params);
   const kosId = resolvedParams.kosId;
@@ -295,7 +295,7 @@ export default function KosDetailPage({
           </p>
           <Button
             className="bg-green-600 hover:bg-green-700"
-            onClick={() => handleOpenChat(kosDetail.ownerId)}
+            onClick={handleOpenChat}
           >
             💬 Chat dengan Pemilik
           </Button>
