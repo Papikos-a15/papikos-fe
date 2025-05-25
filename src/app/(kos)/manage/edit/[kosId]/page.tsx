@@ -2,7 +2,7 @@
 
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import ManageKosPage from "@/components/pages/manage/ManageKosPage";
+import KosEditPage from "@/components/pages/manage/KosEditPage";
 import { defaultQueryClientOptions } from "@/libs/tanstack-query/options";
 import {
   HydrationBoundary,
@@ -10,7 +10,7 @@ import {
   dehydrate,
 } from "@tanstack/react-query";
 
-export default function Add() {
+export default function KosEdit() {
   const queryClient = new QueryClient({
     defaultOptions: defaultQueryClientOptions,
   });
@@ -18,7 +18,7 @@ export default function Add() {
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <Header />
-      <ManageKosPage />
+      <KosEditPage />
       <Footer />
     </HydrationBoundary>
   );

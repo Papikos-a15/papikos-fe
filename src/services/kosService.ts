@@ -10,7 +10,7 @@ export interface Kos {
   maxCapacity: number;
   availableRooms: number;
   price: number;
-  isAvailable: boolean;
+  available: boolean;
 }
 
 export interface AddKosPayload {
@@ -39,6 +39,20 @@ export const addKos = async (
     return response.data;
   } else {
     throw new Error("Failed to add kos");
+  }
+};
+
+export const fetchKos = async (id: string, token: string): Promise<Kos> => {
+  const config: AxiosRequestConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const response = await api.get(`${baseUrl}/management/${id}`, config);
+  if (response.status === 200) {
+    return response.data;
+  } else {
+    throw new Error("Failed to fetch kos");
   }
 };
 

@@ -31,7 +31,7 @@ export const useKos = (filters?: Filters) => {
   const token = localStorage.getItem("token");
   const queryClient = useQueryClient();
 
-  // GET: kos
+  // GET: kos list
   const {
     data: kos = [],
     isLoading,
@@ -59,7 +59,7 @@ export const useKos = (filters?: Filters) => {
     },
   });
 
-  // DELETE: Delete Product
+  // DELETE: Delete Kos
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteKos(id, `Bearer ${token}`),
     onSuccess: () => {

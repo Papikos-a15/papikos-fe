@@ -2,7 +2,7 @@
 
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import ManageKosPage from "@/components/pages/manage/ManageKosPage";
+import KosDetailPage from "@/components/pages/manage/KosDetailPage";
 import { defaultQueryClientOptions } from "@/libs/tanstack-query/options";
 import {
   HydrationBoundary,
@@ -18,7 +18,7 @@ export default function Add() {
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <Header />
-      <ManageKosPage />
+      <KosDetailPage />
       <Footer />
     </HydrationBoundary>
   );

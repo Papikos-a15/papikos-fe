@@ -15,8 +15,8 @@ interface Filters {
 }
 
 export default function KosList() {
-  const router = useRouter()
-  const ownerId = sessionStorage.getItem("userId") || "";
+  const router = useRouter();
+  const ownerId = localStorage.getItem("userId") || "";
   const [filters, setFilters] = useState<Filters>({
     search: "",
     sortBy: "name",
@@ -108,7 +108,10 @@ export default function KosList() {
                     Kamar tersedia: {item.availableRooms || "Tidak tersedia"}
                   </p>
                   <div className="flex gap-4">
-                    <Button className="w-full bg-green-600 hover:bg-green-700">
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => router.push(`/manage/${item.id}`)}
+                    >
                       Lihat Detail
                     </Button>
                   </div>
