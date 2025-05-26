@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { addKos } from "@/services/kosService";
 import { useState, useEffect } from "react";
 import { AddKosPayload } from "@/services/kosService";
+import { toast } from "sonner";
 
 export default function AddKosPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -19,12 +20,20 @@ export default function AddKosPage() {
   const handleAdd = async (formData: AddKosPayload) => {
     try {
       await addKos(formData, token!);
-      router.push("/kos");
+      router.push("/manage");
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     } catch (err: any) {
-      const serverMessage =
-        err?.response?.data?.detail || "Failed to add kos. Please try again.";
-      setErrorMessage(serverMessage);
+      const status = err?.response?.status;
+      if (status === 403) {
+        setErrorMessage("Forbidden. You do not have permission to add a KOS.");
+        toast.error("Forbidden. You do not have permission to add a KOS.");
+      } else if (status === 500) {
+        setErrorMessage("Internal server error. Please try again later.");
+        toast.error("Internal server error. Please try again later.");
+      } else {
+        setErrorMessage("An unexpected error occurred. Please try again.");
+        toast.error("An unexpected error occurred. Please try again.");
+      }
     }
   };
 
