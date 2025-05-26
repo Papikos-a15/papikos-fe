@@ -36,7 +36,8 @@ export default function NotificationsPage() {
       return;
     }
 
-    const socket = new SockJS("http://localhost:8080/ws");
+    const URL = process.env.NEXT_PUBLIC_URL
+    const socket = new SockJS(`${URL}/ws`)
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
 
