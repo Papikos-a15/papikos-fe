@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -13,10 +12,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { Calendar, Filter, X } from "lucide-react";
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
+import {
+  Calendar,
+  Filter,
+  X,
+  Wallet,
+  Eye,
+  EyeOff,
+  RefreshCw,
+} from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -28,14 +32,23 @@ interface Transaction {
   ownerId?: string;
 }
 
+interface WalletResponse {
+  id: string;
+  userId: string;
+  balance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function PaymentsPage() {
-  const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [walletLoading, setWalletLoading] = useState<boolean>(false);
+  const [showBalance, setShowBalance] = useState<boolean>(true);
 
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  // const [dateFromFilter, setDateFromFilter] = useState<string>("");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [dateToFilter, setDateToFilter] = useState<string>("");
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -47,12 +60,45 @@ export default function PaymentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const transactionsPerPage = 10;
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   useEffect(() => {
+    const fetchWallet = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        // Handle non-authenticated case silently or redirect
+        return;
+      }
+
+      setWalletLoading(true);
+      try {
+        const userId = localStorage.getItem("userId");
+        setCurrentUserId(userId || "");
+
+        const res = await fetch(`${API_URL}/wallets/user/${userId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch wallet.");
+        const data = await res.json();
+        setWallet(data);
+        localStorage.setItem("walletBalance", data.balance.toString());
+      } catch (error) {
+        console.error("Wallet fetch error:", error);
+      } finally {
+        setWalletLoading(false);
+      }
+    };
+
     const fetchTransactions = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
-        toast.error("You are not logged in.");
-        router.push("/login");
+        // Handle non-authenticated case silently or redirect
+        setLoading(false);
         return;
       }
 
@@ -61,7 +107,6 @@ export default function PaymentsPage() {
 
       try {
         const userId = localStorage.getItem("userId");
-        const API_URL = process.env.NEXT_PUBLIC_API_URL;
         const res = await fetch(`${API_URL}/transactions/user/${userId}`, {
           method: "GET",
           headers: {
@@ -74,16 +119,50 @@ export default function PaymentsPage() {
         const data = await res.json();
         setTransactions(data);
       } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "An unknown error occurred.",
-        );
+        console.error("Transactions fetch error:", error);
       } finally {
         setLoading(false);
       }
     };
 
+    fetchWallet();
     fetchTransactions();
-  }, [router]);
+  }, [API_URL]);
+
+  const fetchWalletBalance = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setWalletLoading(true);
+    try {
+      const userId = localStorage.getItem("userId");
+      const res = await fetch(`${API_URL}/wallets/user/${userId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch wallet.");
+      const data = await res.json();
+      setWallet(data);
+      localStorage.setItem("walletBalance", data.balance.toString());
+    } catch (error) {
+      console.error("Wallet refresh error:", error);
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -188,295 +267,156 @@ export default function PaymentsPage() {
     };
   };
 
-  return (
-    <>
-      <Header />
-      <main className="flex min-h-screen bg-gradient-to-br from-green-100 via-white to-green-50 items-center justify-center px-4">
-        <div className="w-full max-w-6xl p-8 md:p-12 bg-white rounded-xl shadow-xl">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-gray-900">
-              Your Transactions
-            </h2>
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              Filters
-              {hasActiveFilters && (
-                <span className="bg-green-600 text-white text-xs rounded-full px-2 py-1 ml-1">
-                  {
-                    [
-                      typeFilter !== "all",
-                      statusFilter !== "all",
-                      dateFilter,
-                    ].filter(Boolean).length
-                  }
-                </span>
-              )}
-            </Button>
-          </div>
+  const handleTopUp = async () => {
+    if (!topUpAmount || parseFloat(topUpAmount) <= 0) return;
 
-          {showFilters && (
-            <Card className="mb-6">
-              <CardHeader className="pb-4">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">Filter Transactions</CardTitle>
-                  {hasActiveFilters && (
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+
+    if (!token || !userId) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/transactions/topup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: parseFloat(topUpAmount),
+          userId: userId,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Top-up failed.");
+
+      const newTransaction = await res.json();
+
+      // Add new transaction to the list
+      setTransactions((prev) => [newTransaction, ...prev]);
+
+      // Refresh wallet balance
+      await fetchWalletBalance();
+
+      setTopUpAmount("");
+      setShowTopUpForm(false);
+    } catch (error) {
+      console.error("Top-up error:", error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Payment Dashboard
+          </h1>
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Wallet Balance Card */}
+        <Card className="mb-8 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-white/20 rounded-full">
+                  <Wallet className="h-8 w-8" />
+                </div>
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium">
+                    Your Balance
+                  </p>
+                  <div className="flex items-center space-x-3">
+                    {showBalance ? (
+                      <p className="text-3xl font-bold">
+                        {wallet ? formatCurrency(wallet.balance) : "Loading..."}
+                      </p>
+                    ) : (
+                      <p className="text-3xl font-bold">Rp ••••••••</p>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={clearFilters}
-                      className="text-red-600 hover:text-red-700"
+                      onClick={() => setShowBalance(!showBalance)}
+                      className="text-white hover:bg-white/20 p-2"
                     >
-                      <X className="h-4 w-4 mr-1" />
-                      Clear All
+                      {showBalance ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
+                  </div>
+                  {wallet && (
+                    <p className="text-emerald-100 text-xs mt-1">
+                      Last updated:{" "}
+                      {new Date(wallet.updatedAt).toLocaleString("id-ID")}
+                    </p>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="type-filter">Transaction Type</Label>
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Types" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="PAYMENT">Payment</SelectItem>
-                        <SelectItem value="TOP_UP">Top Up</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="status-filter">Status</Label>
-                    <Select
-                      value={statusFilter}
-                      onValueChange={setStatusFilter}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Statuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        {uniqueStatuses.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Date</Label>
-                    <div className="relative">
-                      <Input
-                        type="date"
-                        id="date"
-                        value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
-                        className="pl-10"
-                      />
-                      <Calendar className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="mb-4 text-sm text-gray-600">
-            Showing {currentTransactions.length} of{" "}
-            {filteredTransactions.length} transactions
-            {hasActiveFilters && " (filtered)"}
-          </div>
-
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading transactions...</p>
-            </div>
-          ) : currentTransactions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">
-                {hasActiveFilters
-                  ? "No transactions match your filters."
-                  : "No transactions found."}
-              </p>
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="mt-2"
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full table-auto border-collapse border border-gray-200 rounded-lg overflow-hidden">
-                  <thead>
-                    <tr className="bg-green-600 text-white">
-                      <th className="px-4 py-3 text-left">Transaction ID</th>
-                      <th className="px-4 py-3 text-left">Type</th>
-                      <th className="px-4 py-3 text-right">Amount</th>
-                      <th className="px-4 py-3 text-left">Date</th>
-                      <th className="px-4 py-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentTransactions.map((transaction, index) => {
-                      const displayInfo = getTransactionDisplay(transaction);
-                      return (
-                        <tr
-                          key={transaction.id}
-                          className={`border-t ${index % 2 === 0 ? "bg-gray-50" : "bg-white"} hover:bg-green-50 transition-colors`}
-                        >
-                          <td className="px-4 py-3 font-mono text-sm">
-                            {transaction.id.substring(0, 8)}...
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${displayInfo.bgColor}`}
-                            >
-                              {displayInfo.label}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold">
-                            <span className={displayInfo.color}>
-                              {displayInfo.sign}${transaction.amount.toFixed(2)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {new Date(transaction.createdAt).toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                transaction.status.toLowerCase() ===
-                                  "completed" ||
-                                transaction.status.toLowerCase() === "success"
-                                  ? "bg-green-100 text-green-800"
-                                  : transaction.status.toLowerCase() ===
-                                      "pending"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {transaction.status.charAt(0).toUpperCase() +
-                                transaction.status.slice(1)}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
               </div>
-
-              {totalPages > 1 && (
-                <div className="flex justify-center mt-4 gap-2 flex-wrap">
+              <div className="flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchWalletBalance}
+                  disabled={walletLoading}
+                  className="text-white hover:bg-white/20"
+                >
+                  {walletLoading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+                {!showTopUpForm && (
                   <Button
-                    variant="outline"
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1}
+                    onClick={() => setShowTopUpForm(true)}
+                    className="bg-white text-emerald-600 hover:bg-gray-100"
                   >
-                    Previous
+                    Top Up
                   </Button>
-                  {[...Array(totalPages)].map((_, index) => (
-                    <Button
-                      key={index}
-                      variant={
-                        currentPage === index + 1 ? "default" : "outline"
-                      }
-                      onClick={() => goToPage(index + 1)}
-                    >
-                      {index + 1}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="outline"
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="mt-6 space-y-4">
-            {!showTopUpForm ? (
-              <Button
-                onClick={() => setShowTopUpForm(true)}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-              >
-                Top Up Balance
-              </Button>
-            ) : (
+        {/* Top Up Form */}
+        {showTopUpForm && (
+          <Card className="mb-6 border-emerald-200">
+            <CardHeader>
+              <CardTitle className="text-emerald-800">Top Up Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="top-up-amount">Amount</Label>
+                  <Label htmlFor="top-up-amount">Amount (IDR)</Label>
                   <Input
                     id="top-up-amount"
                     type="number"
-                    placeholder="Enter amount"
+                    placeholder="Enter amount in Rupiah"
                     value={topUpAmount}
                     onChange={(e) => setTopUpAmount(e.target.value)}
+                    className="text-lg"
                   />
+                  {topUpAmount && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      You will add:{" "}
+                      {formatCurrency(parseFloat(topUpAmount) || 0)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    onClick={async () => {
-                      const token = localStorage.getItem("token");
-                      const userId = sessionStorage.getItem("userId");
-
-                      if (!token || !userId) {
-                        toast.error("You are not logged in.");
-                        return;
-                      }
-
-                      try {
-                        const res = await fetch(
-                          "http://localhost:8080/api/transactions/top-up",
-                          {
-                            method: "POST",
-                            headers: {
-                              "Content-Type": "application/json",
-                              Authorization: `Bearer ${token}`,
-                            },
-                            body: JSON.stringify({
-                              amount: parseFloat(topUpAmount),
-                              userId: userId,
-                            }),
-                          },
-                        );
-
-                        if (!res.ok) throw new Error("Top-up failed.");
-
-                        const newTx = await res.json();
-                        toast.success("Top-up successful!");
-                        setTransactions((prev) => [...prev, newTx]);
-                        setTopUpAmount("");
-                        setShowTopUpForm(false);
-                      } catch (err: unknown) {
-                        if (err instanceof Error) {
-                          toast.error(err.message);
-                        } else {
-                          toast.error("An error occurred.");
-                        }
-                      }
-                    }}
+                    onClick={handleTopUp}
                     disabled={!topUpAmount || parseFloat(topUpAmount) <= 0}
-                    className="bg-green-600 hover:bg-green-700 text-white w-full"
+                    className="bg-emerald-600 hover:bg-emerald-700 flex-1"
                   >
                     Confirm Top Up
                   </Button>
@@ -486,17 +426,273 @@ export default function PaymentsPage() {
                       setShowTopUpForm(false);
                       setTopUpAmount("");
                     }}
-                    className="w-full"
+                    className="flex-1"
                   >
                     Cancel
                   </Button>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Transactions Section */}
+        <Card className="shadow-lg">
+          <CardHeader className="border-b">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-2xl text-gray-900">
+                Transaction History
+              </CardTitle>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                Filters
+                {hasActiveFilters && (
+                  <span className="bg-emerald-600 text-white text-xs rounded-full px-2 py-1 ml-1">
+                    {
+                      [
+                        typeFilter !== "all",
+                        statusFilter !== "all",
+                        dateFilter,
+                      ].filter(Boolean).length
+                    }
+                  </span>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-6">
+            {/* Filters */}
+            {showFilters && (
+              <Card className="mb-6 bg-gray-50">
+                <CardHeader className="pb-4">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">
+                      Filter Transactions
+                    </CardTitle>
+                    {hasActiveFilters && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="type-filter">Transaction Type</Label>
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="PAYMENT">Payment</SelectItem>
+                          <SelectItem value="TOP_UP">Top Up</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="status-filter">Status</Label>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          {uniqueStatuses.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status.charAt(0).toUpperCase() + status.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date</Label>
+                      <div className="relative">
+                        <Input
+                          type="date"
+                          id="date"
+                          value={dateFilter}
+                          onChange={(e) => setDateFilter(e.target.value)}
+                          className="pl-10"
+                        />
+                        <Calendar className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </div>
-        </div>
+
+            <div className="mb-4 text-sm text-gray-600">
+              Showing {currentTransactions.length} of{" "}
+              {filteredTransactions.length} transactions
+              {hasActiveFilters && " (filtered)"}
+            </div>
+
+            {/* Transaction Table */}
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading transactions...</p>
+              </div>
+            ) : currentTransactions.length === 0 ? (
+              <div className="text-center py-12">
+                <Wallet className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600 text-lg">
+                  {hasActiveFilters
+                    ? "No transactions match your filters."
+                    : "No transactions found."}
+                </p>
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="mt-4"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto rounded-lg border">
+                  <table className="w-full table-auto">
+                    <thead>
+                      <tr className="bg-emerald-600 text-white">
+                        <th className="px-6 py-4 text-left font-semibold">
+                          Transaction ID
+                        </th>
+                        <th className="px-6 py-4 text-left font-semibold">
+                          Type
+                        </th>
+                        <th className="px-6 py-4 text-right font-semibold">
+                          Amount
+                        </th>
+                        <th className="px-6 py-4 text-left font-semibold">
+                          Date
+                        </th>
+                        <th className="px-6 py-4 text-center font-semibold">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentTransactions.map((transaction, index) => {
+                        const displayInfo = getTransactionDisplay(transaction);
+                        return (
+                          <tr
+                            key={transaction.id}
+                            className={`border-t ${
+                              index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                            } hover:bg-emerald-50 transition-colors`}
+                          >
+                            <td className="px-6 py-4 font-mono text-sm">
+                              {transaction.id.substring(0, 8)}...
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`px-3 py-1 rounded-full text-sm font-medium ${displayInfo.bgColor}`}
+                              >
+                                {displayInfo.label}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right font-semibold">
+                              <span className={displayInfo.color}>
+                                {displayInfo.sign}
+                                {formatCurrency(transaction.amount)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600">
+                              {new Date(transaction.createdAt).toLocaleString(
+                                "id-ID",
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span
+                                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                  transaction.status.toLowerCase() ===
+                                    "completed" ||
+                                  transaction.status.toLowerCase() === "success"
+                                    ? "bg-green-100 text-green-800"
+                                    : transaction.status.toLowerCase() ===
+                                        "pending"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {transaction.status.charAt(0).toUpperCase() +
+                                  transaction.status.slice(1)}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-6 gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const pageNum = i + Math.max(1, currentPage - 2);
+                      if (pageNum > totalPages) return null;
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={
+                            currentPage === pageNum ? "default" : "outline"
+                          }
+                          onClick={() => goToPage(pageNum)}
+                          className={
+                            currentPage === pageNum
+                              ? "bg-emerald-600 hover:bg-emerald-700"
+                              : ""
+                          }
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      variant="outline"
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </main>
-      <Footer />
-    </>
+    </div>
   );
 }
