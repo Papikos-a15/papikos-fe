@@ -13,21 +13,24 @@ const KirimNotifikasiPage = () => {
   const [message, setMessage] = useState('')
   const [type, setType] = useState('')
   const router = useRouter()
-  const [role, setRole] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true);
   
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("role");
-    const storedToken = localStorage.getItem("token");
+    const checkAuth = () => {
+      const storedRole = localStorage.getItem("role");
+      const storedToken = localStorage.getItem("token");
 
-    setRole(storedRole);
-    setToken(storedToken);
+      if (storedRole !== "ADMIN" || !storedToken) {
+        router.push("/");
+      } else {
+        setToken(storedToken);
+        setLoading(false);
+      }
+    };
 
-    if (storedRole !== "ADMIN" || !storedToken) {
-      router.push("/");
-    }
+    checkAuth();
   }, [router]);
 
   const handleSendNotification = async () => {
