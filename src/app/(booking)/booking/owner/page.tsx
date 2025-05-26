@@ -250,16 +250,6 @@ export default function OwnerBookingsPage() {
                         Setujui Booking
                       </Button>
                     )}
-
-                    {/* Show View Details button for all bookings */}
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        router.push(`/owner/bookings/${booking.bookingId}`)
-                      }
-                    >
-                      Lihat Detail
-                    </Button>
                   </div>
                 </div>
               </div>
