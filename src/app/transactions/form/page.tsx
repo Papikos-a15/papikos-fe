@@ -14,7 +14,8 @@ export default function CreatePaymentPage() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch("http://localhost:8080/api/transactions/topup", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_URL}/transactions/topup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,7 +1,6 @@
-// app/admin/kirim-notifikasi/page.tsx (Kirim Notifikasi Page)
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,35 +12,35 @@ const KirimNotifikasiPage = () => {
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [type, setType] = useState('')
-  const [recipientType, setRecipientType] = useState('all') // 'all' or 'specific'
-  const [userId, setUserId] = useState('') // Only used if recipientType is 'specific'
   const router = useRouter()
+  const [role, setRole] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true);
+  
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("role");
+    const storedToken = localStorage.getItem("token");
+
+    setRole(storedRole);
+    setToken(storedToken);
+
+    if (storedRole !== "ADMIN" || !storedToken) {
+      router.push("/");
+    }
+  }, [router]);
 
   const handleSendNotification = async () => {
-    const token = localStorage.getItem("token")
-
-    if (!token) {
-      toast.error("You are not logged in!")
-      return
-    }
-
     const API_URL = process.env.NEXT_PUBLIC_API_URL
 
     try {
-      if (recipientType === 'specific' && !userId) {
-        toast.error("Please select a user for specific notification!")
-        return
-      }
-
       const notificationData = {
         title,
         message,
-        type,
-        ...(recipientType === 'specific' && { userId })
+        type
       }
 
-      const response = await fetch(
-        recipientType === 'specific' ? `${API_URL}/notifications` : `${API_URL}/notifications/broadcast`,
+      const response = await fetch(`${API_URL}/notifications/broadcast`,
         {
           method: 'POST',
           headers: {
@@ -57,16 +56,17 @@ const KirimNotifikasiPage = () => {
       }
 
       toast.success('Notification sent successfully!')
-      // Reset form fields
       setTitle('')
       setMessage('')
       setType('')
-      setUserId('')
     } catch (error) {
       toast.error('Failed to send notification')
       console.error('Error sending notification:', error)
     }
   }
+
+  if (loading)
+    return <div className="p-6 text-center text-gray-500">Loading...</div>;
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-green-100 via-white to-green-50 text-gray-800">
@@ -122,7 +122,7 @@ const KirimNotifikasiPage = () => {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Enter notification message"
               className="mt-1"
-							style={{ height: '200px' }}
+              style={{ height: '200px' }}
             />
           </div>
 
@@ -133,7 +133,7 @@ const KirimNotifikasiPage = () => {
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                {['BOOKING', 'PAYMENT', 'SYSTEM', 'OTHER', 'ADMIN', 'WISHLIST'].map((typeOption) => (
+                {['SYSTEM', 'OTHER', 'ADMIN'].map((typeOption) => (
                   <SelectItem key={typeOption} value={typeOption}>
                     {typeOption}
                   </SelectItem>
@@ -142,49 +142,8 @@ const KirimNotifikasiPage = () => {
             </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Recipient</label>
-            <div className="flex items-center space-x-4">
-              <div>
-                <input
-                  type="radio"
-                  id="all"
-                  name="recipientType"
-                  value="all"
-                  checked={recipientType === 'all'}
-                  onChange={() => setRecipientType('all')}
-                />
-                <label htmlFor="all" className="ml-2 text-sm">All Users</label>
-              </div>
-              <div>
-                <input
-                  type="radio"
-                  id="specific"
-                  name="recipientType"
-                  value="specific"
-                  checked={recipientType === 'specific'}
-                  onChange={() => setRecipientType('specific')}
-                />
-                <label htmlFor="specific" className="ml-2 text-sm">Specific User</label>
-              </div>
-            </div>
-          </div>
-
-          {recipientType === 'specific' && (
-            <div>
-              <label htmlFor="userId" className="block text-sm font-medium text-gray-700">User ID</label>
-              <Input
-                id="userId"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter user ID"
-                className="mt-1"
-              />
-            </div>
-          )}
-
           <Button onClick={handleSendNotification} className="w-full bg-green-600 text-white">
-            Send Notification
+            Send Notification To All Users
           </Button>
         </div>
       </main>

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { addKos } from "@/services/kosService";
 import { useState, useEffect } from "react";
 import { AddKosPayload } from "@/services/kosService";
-import { toast } from "sonner";
 
 export default function AddKosPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -25,14 +24,13 @@ export default function AddKosPage() {
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 403) {
-        setErrorMessage("Forbidden. You do not have permission to add a KOS.");
-        toast.error("Forbidden. You do not have permission to add a KOS.");
+        setErrorMessage(
+          "Unauthorized. Please wait for account approval from the admin.",
+        );
       } else if (status === 500) {
         setErrorMessage("Internal server error. Please try again later.");
-        toast.error("Internal server error. Please try again later.");
       } else {
         setErrorMessage("An unexpected error occurred. Please try again.");
-        toast.error("An unexpected error occurred. Please try again.");
       }
     }
   };

@@ -35,7 +35,8 @@ export default function RoomChatPage() {
   const clientRef = useRef<Client | null>(null);
 
   useEffect(() => {
-    const socket = new SockJS("http://localhost:8080/ws");
+    const URL = process.env.NEXT_PUBLIC_URL
+    const socket = new SockJS(`${URL}/ws`)
     const id = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
     setUserId(id);
