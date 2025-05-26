@@ -1,4 +1,5 @@
 "use client";
+"use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
   EyeOff,
   RefreshCw,
 } from "lucide-react";
+import Header from "@/components/layout/header";
 
 interface Transaction {
   id: string;
@@ -310,13 +312,9 @@ export default function PaymentsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Payment Dashboard
-          </h1>
-        </div>
-      </div>
+      <Header />
+
+      {/* Main Content */}
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Wallet Balance Card */}
@@ -329,7 +327,7 @@ export default function PaymentsPage() {
                 </div>
                 <div>
                   <p className="text-emerald-100 text-sm font-medium">
-                    Your Balance
+                    Saldo Anda
                   </p>
                   <div className="flex items-center space-x-3">
                     {showBalance ? (
@@ -352,12 +350,6 @@ export default function PaymentsPage() {
                       )}
                     </Button>
                   </div>
-                  {wallet && (
-                    <p className="text-emerald-100 text-xs mt-1">
-                      Last updated:{" "}
-                      {new Date(wallet.updatedAt).toLocaleString("id-ID")}
-                    </p>
-                  )}
                 </div>
               </div>
               <div className="flex space-x-2">
@@ -441,7 +433,7 @@ export default function PaymentsPage() {
           <CardHeader className="border-b">
             <div className="flex justify-between items-center">
               <CardTitle className="text-2xl text-gray-900">
-                Transaction History
+                Riwayat Transaksi
               </CardTitle>
               <Button
                 variant="outline"

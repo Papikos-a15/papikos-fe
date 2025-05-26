@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarIcon } from "@radix-ui/react-icons";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import {
   Select,
@@ -14,12 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { use } from "react";
 
 interface KosDetail {
@@ -36,7 +28,7 @@ interface KosDetail {
 export default function KosDetailPage({
   params,
 }: {
-  params: { kosId: string };
+  params: Promise<{ kosId: string }>;
 }) {
   const resolvedParams = use(params);
   const kosId = resolvedParams.kosId;
@@ -46,7 +38,11 @@ export default function KosDetailPage({
   const [loading, setLoading] = useState(true);
   // const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [duration, setDuration] = useState("1");
-  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  });
   const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -71,29 +67,29 @@ export default function KosDetailPage({
         setOwnerEmail("Email tidak tersedia");
       }
     } catch (error) {
-      setOwnerEmail("Error saat mengambil email");
+      setOwnerEmail(`Error saat mengambil email ${error}`);
     }
   };
 
   const handleOpenChat = async () => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    const token = localStorage.getItem('token')
-    const senderId = localStorage.getItem('userId')
+    const token = localStorage.getItem("token");
+    const senderId = localStorage.getItem("userId");
 
     const body = {
-        penyewaId: senderId,
-        pemilikKosId: kosDetail?.ownerId,
-    }
+      penyewaId: senderId,
+      pemilikKosId: kosDetail?.ownerId,
+    };
 
     try {
       const res = await fetch(`${API_URL}/roomchats`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
-      })
+      });
 
       if (!res.ok) {
         const errText = await res.text();
@@ -101,16 +97,15 @@ export default function KosDetailPage({
       }
 
       const roomChatId = await res.text();
-      if (!roomChatId || roomChatId.trim() === '') {
+      if (!roomChatId || roomChatId.trim() === "") {
         throw new Error("Room ID kosong. Server tidak mengembalikan ID.");
       }
-      console.log('Room chat ID:', roomChatId)
-      router.push(`/chat/${roomChatId}`)
+      router.push(`/chat/`);
     } catch (err) {
-      toast.error("Gagal membuka chat")
-      console.error(err)
+      toast.error("Gagal membuka chat");
+      console.error(err);
     }
-  }
+  };
 
   useEffect(() => {
     const fetchKosDetail = async () => {
@@ -151,7 +146,12 @@ export default function KosDetailPage({
       fetchOwnerEmail(kosDetail.ownerId);
     }
   }, [kosDetail]);
-
+  const formatDateToLocal = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
   const handleBooking = async () => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -161,8 +161,8 @@ export default function KosDetailPage({
       // Check if userId exists
       if (!userId) {
         toast.error("User ID tidak ditemukan. Silakan login kembali.");
-        router.push("/login");
-        return;
+        // router.push("/login");
+        // return;
       }
 
       if (!token) {
@@ -183,7 +183,7 @@ export default function KosDetailPage({
       const bookingData = {
         kosId: kosId,
         duration: parseInt(duration),
-        checkInDate: startDate.toISOString().split("T")[0],
+        checkInDate: formatDateToLocal(startDate),
         userId: userId,
         fullName: fullName,
         phoneNumber: phoneNumber,
@@ -202,13 +202,34 @@ export default function KosDetailPage({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to book kos");
+        // Handle different error status codes
+        if (response.status === 400) {
+          toast.error("Data booking tidak valid. Periksa kembali form.");
+        } else if (response.status === 403) {
+          toast.error("Tidak memiliki izin untuk melakukan booking ini.");
+        } else if (response.status === 404) {
+          toast.error("Kos tidak ditemukan.");
+        } else {
+          toast.error(`Error: ${response.status} - ${response.statusText}`);
+        }
+
+        // Try to get error message from response if available
+        try {
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
+          if (errorText) {
+            toast.error(`Server error: ${errorText}`);
+          }
+        } catch (parseError) {
+          console.error("Could not parse error response:", parseError);
+        }
+
+        return;
       }
 
-      const data = await response.json();
+      // const data = await response.json();
       toast.success("Booking berhasil dibuat!");
-      router.push(`/booking/confirmation/${data.id}`);
+      router.push(`/booking/`);
     } catch (error) {
       console.error("Error booking kos:", error);
       toast.error(
@@ -272,7 +293,10 @@ export default function KosDetailPage({
           <p className="text-gray-700 mb-6">
             Email: {ownerEmail || "Memuat..."}
           </p>
-          <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleOpenChat(kosDetail.ownerId)}>
+          <Button
+            className="bg-green-600 hover:bg-green-700"
+            onClick={handleOpenChat}
+          >
             💬 Chat dengan Pemilik
           </Button>
         </div>
@@ -345,30 +369,18 @@ export default function KosDetailPage({
                   <label className="block text-sm font-medium mb-1">
                     Tanggal Mulai
                   </label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? (
-                          format(startDate, "PPP")
-                        ) : (
-                          <span>Pilih tanggal</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={(date) => date && setStartDate(date)}
-                        initialFocus
-                        disabled={(date) => date < new Date()}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <input
+                    type="date"
+                    value={formatDateToLocal(startDate)}
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      setStartDate(selectedDate);
+                    }}
+                    min={formatDateToLocal(
+                      new Date(Date.now() + 24 * 60 * 60 * 1000),
+                    )} // Minimal besok
+                    className="w-full border rounded-md p-2"
+                  />
                 </div>
               </div>
 

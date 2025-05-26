@@ -68,7 +68,7 @@ export default function WishlistPage() {
                   headers: {
                     Authorization: `Bearer ${token}`,
                   },
-                }
+                },
               );
 
               if (!kosResponse.ok) {
@@ -85,7 +85,7 @@ export default function WishlistPage() {
                 availability: kosData.availableRooms,
                 imageUrl: "", // You can add the image URL if available in your data
               };
-            })
+            }),
           );
 
           setWishlist(wishlistWithDetails);
@@ -122,7 +122,7 @@ export default function WishlistPage() {
 
       if (response.ok) {
         setWishlist((prevWishlist) =>
-          prevWishlist.filter((item) => item.id !== wishlistId)
+          prevWishlist.filter((item) => item.id !== wishlistId),
         );
         toast.success("Kos berhasil dihapus dari wishlist");
       } else {
@@ -143,7 +143,9 @@ export default function WishlistPage() {
       <>
         <Header />
         <div className="flex flex-col items-center justify-center p-10 min-h-[50vh] text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Akses Terbatas</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Akses Terbatas
+          </h2>
           <p className="text-gray-600 mb-6">
             Silakan login terlebih dahulu untuk melihat wishlist Anda.
           </p>
@@ -173,15 +175,22 @@ export default function WishlistPage() {
     <>
       <Header />
       <main className="max-w-7xl mx-auto p-6 min-h-screen">
-        <h1 className="text-3xl font-bold text-green-700 mb-6">Wishlist Kos Anda</h1>
+        <h1 className="text-3xl font-bold text-green-700 mb-6">
+          Wishlist Kos Anda
+        </h1>
         {wishlist.length === 0 ? (
           <div className="text-center p-10 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">Anda belum memiliki kos di wishlist.</p>
+            <p className="text-gray-500">
+              Anda belum memiliki kos di wishlist.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {wishlist.map((kos) => (
-              <Card key={kos.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card
+                key={kos.id}
+                className="overflow-hidden hover:shadow-lg transition-shadow"
+              >
                 <div className="h-48 overflow-hidden">
                   <img
                     src={kos.imageUrl || "/images/kos-default.jpg"}
@@ -190,12 +199,20 @@ export default function WishlistPage() {
                   />
                 </div>
                 <CardContent className="p-4">
-                  <h2 className="text-xl font-semibold text-green-700">{kos.name}</h2>
+                  <h2 className="text-xl font-semibold text-green-700">
+                    {kos.name}
+                  </h2>
                   <p className="text-gray-600 mb-2">{kos.location}</p>
                   <p className="text-lg font-bold mb-2">
-                    Rp {kos.price ? kos.price.toLocaleString("id-ID") : "Harga tidak tersedia"}/bulan
+                    Rp{" "}
+                    {kos.price
+                      ? kos.price.toLocaleString("id-ID")
+                      : "Harga tidak tersedia"}
+                    /bulan
                   </p>
-                  <p className="text-sm text-gray-700 mb-3 line-clamp-2">{kos.description}</p>
+                  <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+                    {kos.description}
+                  </p>
                   <div className="flex gap-4">
                     <Button
                       className="w-full bg-green-600 hover:bg-green-700"
@@ -210,7 +227,7 @@ export default function WishlistPage() {
                     >
                       <FaHeart
                         className="inline-block text-white"
-                        style={{ width: '20px', height: '20px' }}
+                        style={{ width: "20px", height: "20px" }}
                       />
                       <span className="ml-2">Hapus Wishlist</span>
                     </Button>

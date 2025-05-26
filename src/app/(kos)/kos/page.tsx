@@ -16,7 +16,7 @@ interface KosListing {
   name: string;
   location: string;
   price: number;
-  availability: number;
+  availableRooms: number;
   facilities: string[];
   imageUrl: string;
   description: string;
@@ -220,15 +220,18 @@ export default function KosListingPage() {
       });
 
       if (response.ok) {
-        const wishlistData = await response.json();
+        // const wishlistData = await response.json();
         toast.success("Kos berhasil ditambahkan ke wishlist");
 
-        const wishlistResponse = await fetch(`${API_URL}/wishlists/user/${userId}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const wishlistResponse = await fetch(
+          `${API_URL}/wishlists/user/${userId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
 
         if (wishlistResponse.status === 204) {
           setUserWishlist([]);
@@ -236,7 +239,6 @@ export default function KosListingPage() {
           const wishlistData = await wishlistResponse.json();
           setUserWishlist(wishlistData);
         }
-
       } else {
         const errorData = await response.json().catch(() => null);
         const errorMessage =
@@ -476,7 +478,7 @@ export default function KosListingPage() {
                         {kos.description}
                       </p>
                       <p className="text-sm text-gray-500 mb-3">
-                        Kamar tersedia: {kos.availability || "Tidak tersedia"}
+                        Kamar tersedia: {kos.availableRooms || "Tidak tersedia"}
                       </p>
                       <div className="flex flex-wrap gap-1 mb-4">
                         {kos.facilities?.slice(0, 3).map((facility, index) => (

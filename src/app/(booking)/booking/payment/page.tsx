@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Image from "next/image";
 
 interface PaymentDetails {
   bookingId: string;
@@ -21,7 +22,15 @@ interface PaymentDetails {
   kosName: string;
 }
 
-export default function PaymentPage() {
+// Helper function untuk error handling
+// const getErrorMessage = (error: unknown): string => {
+//   if (error instanceof Error) return error.message;
+//   if (typeof error === 'string') return error;
+//   return "Terjadi kesalahan yang tidak diketahui";
+// };
+
+// Pisahkan component yang menggunakan useSearchParams
+function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
@@ -85,7 +94,7 @@ export default function PaymentPage() {
 
     try {
       toast.success("Pembayaran berhasil!");
-      router.push("/tenant/bookings");
+      router.push("/booking");
     } catch (error) {
       console.error("Error processing payment:", error);
       toast.error("Gagal memproses pembayaran");
@@ -104,7 +113,7 @@ export default function PaymentPage() {
           onClick={() => router.push("/booking")}
           className="mt-4 bg-green-600 hover:bg-green-700"
         >
-          Kembali ke Daftar Kos
+          Kembali ke Daftar Booking
         </Button>
       </div>
     );
@@ -218,17 +227,28 @@ export default function PaymentPage() {
                   <p className="font-medium mb-2">Pilih E-Wallet:</p>
                   <div className="flex gap-4 mt-2">
                     <div className="border rounded p-3 cursor-pointer hover:border-green-500 flex items-center justify-center">
-                      <img
+                      <Image
                         src="/images/gopay.png"
                         alt="GoPay"
-                        className="h-8"
+                        width={64}
+                        height={32}
                       />
                     </div>
                     <div className="border rounded p-3 cursor-pointer hover:border-green-500 flex items-center justify-center">
-                      <img src="/images/ovo.png" alt="OVO" className="h-8" />
+                      <Image
+                        src="/images/ovo.png"
+                        alt="OVO"
+                        width={64}
+                        height={32}
+                      />
                     </div>
                     <div className="border rounded p-3 cursor-pointer hover:border-green-500 flex items-center justify-center">
-                      <img src="/images/dana.png" alt="DANA" className="h-8" />
+                      <Image
+                        src="/images/dana.png"
+                        alt="DANA"
+                        width={64}
+                        height={32}
+                      />
                     </div>
                   </div>
                 </div>
@@ -248,14 +268,33 @@ export default function PaymentPage() {
       <div className="text-center">
         <Button
           variant="ghost"
-          onClick={() =>
-            router.push(`/booking/confirmation/${paymentDetails.bookingId}`)
-          }
+          onClick={() => router.push(`/booking`)}
           className="text-green-700"
         >
           ← Kembali ke Detail Booking
         </Button>
       </div>
     </div>
+  );
+}
+
+// Loading component untuk Suspense fallback
+function PaymentLoading() {
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="animate-pulse">
+        <div className="h-8 bg-gray-200 rounded-md mb-8"></div>
+        <div className="h-64 bg-gray-200 rounded-md"></div>
+      </div>
+    </div>
+  );
+}
+
+// Main component dengan Suspense wrapper
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<PaymentLoading />}>
+      <PaymentContent />
+    </Suspense>
   );
 }

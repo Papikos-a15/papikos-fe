@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+import { FaTrashAlt } from "react-icons/fa";
 
 interface Notification {
   id: string;
@@ -21,8 +24,19 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [filter, setFilter] = useState("all");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isConnected, setIsConnected] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    const id = localStorage.getItem("userId"); // Grab userId
+    setUserId(id); // Set it in state
+    if (!id) {
+      console.error("User ID not found");
+      return;
+    }
+
+    const socket = new SockJS("http://localhost:8080/ws");
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
 
@@ -31,43 +45,84 @@ export default function NotificationsPage() {
       return;
     }
 
-    const fetchNotifications = async () => {
-      try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL;
-        const userId = localStorage.getItem("userId");
-
-        if (!userId) {
-          toast.error("User ID not found");
-          return;
-        }
-
-        const response = await fetch(`${API_URL}/notifications/user/${userId}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok && response.status !== 204) {
-          throw new Error("Failed to fetch notifications");
-        }
-
-        if (response.status !== 204) {
-          const data = await response.json();
-          setNotifications(data);
-        } else {
-          toast.error("No notifications available");
-        }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-        toast.error("Failed to fetch notifications");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNotifications();
-  }, []);
+
+    const client = new Client({
+      webSocketFactory: () => socket,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
+      reconnectDelay: 5000,
+      onConnect: () => {
+        console.log("✅ WebSocket connected");
+        client.subscribe(`/queue/notifications/${id}`, (message) => {
+          const newNotif = JSON.parse(message.body);
+          setNotifications((prev) => {
+            if (prev.some((notif) => notif.id === newNotif.id)) {
+              return prev;
+            }
+            return [...prev, newNotif];
+          });
+        });
+        setIsConnected(true);
+      },
+      onStompError: (frame) => {
+        console.error("STOMP Error:", frame);
+        setIsConnected(false);
+      },
+      onWebSocketClose: () => {
+        console.warn("🔌 WebSocket disconnected");
+        setIsConnected(false);
+      },
+    });
+
+    client.activate();
+
+    return () => {
+      client.deactivate();
+    };
+  }, [userId]); // Run again when userId changes
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const userId = localStorage.getItem("userId");
+
+      if (!userId) {
+        toast.error("User ID not found");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/notifications/user/${userId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error("Failed to fetch notifications");
+      }
+
+      if (response.status !== 204) {
+        const data = await response.json();
+
+        if (data.length === 0) {
+          toast.info("No notifications available");
+        } else {
+          setNotifications(data);
+        }
+      } else {
+        toast.error("No notifications available");
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      toast.error("Failed to fetch notifications");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
@@ -79,20 +134,23 @@ export default function NotificationsPage() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${API_URL}/notifications/${notificationId}/read`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (response.ok) {
         setNotifications((prevNotifications) =>
           prevNotifications.map((notification) =>
             notification.id === notificationId
               ? { ...notification, read: true }
-              : notification
-          )
+              : notification,
+          ),
         );
         toast.success("Notification marked as read");
       } else {
@@ -109,6 +167,42 @@ export default function NotificationsPage() {
     handleMarkAsRead(notificationId);
   };
 
+  const handleDeleteNotification = async (notificationId: string) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        toast.error("Token not valid");
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/notifications/${notificationId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        setNotifications((prevNotifications) =>
+          prevNotifications.filter(
+            (notification) => notification.id !== notificationId,
+          ),
+        );
+        toast.success("Notification deleted");
+      } else {
+        throw new Error("Failed to delete notification");
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      toast.error("Failed to delete notification");
+    }
+  };
+
   const handleFilterChange = (filter: string) => {
     setFilter(filter);
   };
@@ -118,7 +212,9 @@ export default function NotificationsPage() {
       <>
         <Header />
         <div className="flex flex-col items-center justify-center p-10 min-h-[50vh] text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Akses Terbatas</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Akses Terbatas
+          </h2>
           <p className="text-gray-600 mb-6">
             Silakan login terlebih dahulu untuk melihat notifikasi Anda.
           </p>
@@ -148,14 +244,16 @@ export default function NotificationsPage() {
     filter === "all"
       ? notifications
       : notifications.filter((notification) =>
-          filter === "read" ? notification.read : !notification.read
+          filter === "read" ? notification.read : !notification.read,
         );
 
   return (
     <>
       <Header />
       <main className="max-w-7xl mx-auto p-6 min-h-screen">
-        <h1 className="text-3xl font-bold text-green-700 mb-6">Notifikasi Anda</h1>
+        <h1 className="text-3xl font-bold text-green-700 mb-6">
+          Notifikasi Anda
+        </h1>
         <div className="mb-4">
           <Button
             onClick={() => handleFilterChange("all")}
@@ -186,17 +284,29 @@ export default function NotificationsPage() {
             {filteredNotifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`overflow-hidden ${notification.read ? "bg-gray-100" : "bg-white"} hover:shadow-lg transition-shadow`}
+                className={`overflow-hidden ${notification.read ? "bg-gray-100" : "bg-white"} hover:shadow-lg transition-shadow cursor-pointer`}
+                onClick={() => handleViewNotification(notification.id)}
               >
-                <CardContent className="p-4">
-                  <h2 className="text-xl font-semibold text-green-700">{notification.title}</h2>
-                  <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleViewNotification(notification.id)}
-                  >
-                    {notification.read ? "Lihat" : "Mark as Read"}
-                  </Button>
+                <CardContent className="p-4 flex justify-between items-end h-full">
+                  <div>
+                    <h2 className="text-xl font-semibold text-green-700">
+                      {notification.title}
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {notification.message}
+                    </p>
+                  </div>
+                  <div className="mt-2">
+                    <Button
+                      className="w-8 h-8 p-0 bg-red-500 text-white"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent the card click event
+                        handleDeleteNotification(notification.id);
+                      }}
+                    >
+                      <FaTrashAlt />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

@@ -1,30 +1,29 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
-import Link from "next/link"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import Link from "next/link";
 
 function decodeJWT(token: string) {
-  const base64Url = token.split('.')[1]
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+  const base64Url = token.split(".")[1];
+  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
   const jsonPayload = decodeURIComponent(
     atob(base64)
-      .split('')
-      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-      .join('')
-  )
-  return JSON.parse(jsonPayload)
+      .split("")
+      .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+      .join(""),
+  );
+  return JSON.parse(jsonPayload);
 }
 
-
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   // useEffect(() => {
   //   const token = localStorage.getItem("token")
@@ -45,40 +44,40 @@ export default function LoginPage() {
   // }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    })
+      body: JSON.stringify({ email, password }),
+    });
 
     if (!res.ok) {
-      toast.error("Login gagal. Periksa email dan password.")
-      return
+      toast.error("Login gagal. Periksa email dan password.");
+      return;
     }
 
-    const data = await res.json()
-    const token = data.token
-    const userId = data.userId
+    const data = await res.json();
+    const token = data.token;
+    const userId = data.userId;
 
     const decodedToken = decodeJWT(token);
 
     localStorage.setItem("token", token);
-    sessionStorage.setItem("userId", userId);
+    localStorage.setItem("userId", userId);
     localStorage.setItem("role", decodedToken.role);
-    const role = decodedToken.role
+    const role = decodedToken.role;
 
-    toast.success("Login berhasil!")
+    toast.success("Login berhasil!");
 
     if (role === "ADMIN") {
-      router.push("/admin")
+      router.push("/admin");
     } else {
-      router.push("/")
+      router.push("/");
     }
-  }
+  };
 
   return (
     <main className="flex min-h-screen bg-gradient-to-br from-green-100 via-white to-green-50 items-center justify-center px-4">
@@ -98,12 +97,16 @@ export default function LoginPage() {
             <h2 className="text-3xl font-bold text-gray-900">
               Welcome to <span className="text-green-700">Papikos</span>
             </h2>
-            <p className="text-gray-500 text-sm">We're happy to see you again</p>
+            <p className="text-gray-500 text-sm">
+              We are happy to see you again
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <Label htmlFor="email" className="text-sm text-gray-700">Email</Label>
+              <Label htmlFor="email" className="text-sm text-gray-700">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -113,7 +116,9 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <Label htmlFor="password" className="text-sm text-gray-700">Password</Label>
+              <Label htmlFor="password" className="text-sm text-gray-700">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -123,7 +128,10 @@ export default function LoginPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white">
+            <Button
+              type="submit"
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+            >
               Login
             </Button>
           </form>
@@ -137,7 +145,7 @@ export default function LoginPage() {
 
           <Button
             variant="ghost"
-            onClick={() => router.push('/')}
+            onClick={() => router.push("/")}
             className="mt-2 w-full text-green-700"
           >
             ← Kembali ke Beranda
@@ -145,5 +153,5 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
