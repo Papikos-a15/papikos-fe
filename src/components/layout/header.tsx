@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { BellIcon } from "@heroicons/react/24/outline";
+import { BellIcon, Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 interface Notification {
   id: string;
@@ -21,6 +21,7 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   // const [notifications, setNotifications] = useState<Notification[]>([])
 
   useEffect(() => {
@@ -81,102 +82,196 @@ export default function Navbar() {
     localStorage.clear();
     setIsLoggedIn(false);
     setRole(null);
+    setIsMobileMenuOpen(false);
     toast.success("Logout berhasil!");
     router.push("/login");
   };
 
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  const renderMenuItems = () => {
+    if (!isLoggedIn) return null;
+
+    const menuItems = [];
+    
+    if (role === "TENANT") {
+      menuItems.push(
+        { href: "/", label: "Beranda" },
+        { href: "/kos", label: "Eksplor Kos" },
+        { href: "/booking", label: "Booking Saya" },
+        { href: "/wishlist", label: "Wishlist" },
+        { href: "/chat", label: "Chat" },
+        { href: "/transactions", label: "Riwayat" }
+      );
+    } else if (role === "OWNER") {
+      menuItems.push(
+        { href: "/", label: "Beranda" },
+        { href: "/manage", label: "Kelola Kos" },
+        { href: "/booking/owner", label: "Permintaan Booking" },
+        { href: "/chat", label: "Chat" },
+        { href: "/transactions", label: "Riwayat" }
+      );
+    }
+
+    return menuItems;
+  };
+
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-md py-4 px-6 flex items-center justify-between">
-      {/* Kiri - Logo */}
-      <Link href="/" className="text-2xl font-bold text-green-700">
-        Papikos
-      </Link>
+    <>
+      <header className="sticky top-0 z-50 bg-white shadow-md">
+        <div className="px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="text-xl sm:text-2xl font-bold text-green-700 flex-shrink-0">
+              Papikos
+            </Link>
 
-      {/* Tengah - Menu berdasarkan role */}
-      <nav className="hidden md:flex gap-6 text-sm text-gray-700 font-medium">
-        {isLoggedIn && role === "TENANT" && (
-          <>
-            <Link href="/" className="hover:text-green-700">
-              Beranda
-            </Link>
-            <Link href="/kos" className="hover:text-green-700">
-              Eksplor Kos
-            </Link>
-            <Link href="/booking" className="hover:text-green-700">
-              Booking Saya
-            </Link>
-            <Link href="/wishlist" className="hover:text-green-700">
-              Wishlist
-            </Link>
-            <Link href="/chat" className="hover:text-green-700">
-              Chat
-            </Link>
-            <Link href="/transactions" className="hover:text-green-700">
-              Riwayat
-            </Link>
-          </>
-        )}
-        {isLoggedIn && role === "OWNER" && (
-          <>
-            <Link href="/" className="hover:text-green-700">
-              Beranda
-            </Link>
-            <Link href="/manage" className="hover:text-green-700">
-              Kelola Kos
-            </Link>
-            <Link href="/booking/owner" className="hover:text-green-700">
-              Permintaan Booking
-            </Link>
-            <Link href="/chat" className="hover:text-green-700">
-              Chat
-            </Link>
-            <Link href="/transactions" className="hover:text-green-700">
-              Riwayat
-            </Link>
-          </>
-        )}
-      </nav>
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex gap-6 text-sm text-gray-700 font-medium">
+              {renderMenuItems()?.map((item) => (
+                <Link 
+                  key={item.href} 
+                  href={item.href} 
+                  className="hover:text-green-700 transition-colors whitespace-nowrap"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
 
-      {/* Kanan - Auth Buttons */}
-      <div className="flex items-center gap-4">
-        {isLoggedIn ? (
-          <>
-            {/* Notification Button */}
-            <Link href="/notification">
+            {/* Desktop Auth Buttons */}
+            <div className="hidden md:flex items-center gap-3">
+              {isLoggedIn ? (
+                <>
+                  {/* Notification Button */}
+                  <Link href="/notification">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-700 hover:bg-gray-100 relative p-2"
+                    >
+                      <BellIcon className="w-5 h-5" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                    </Button>
+                  </Link>
+                  {/* Logout Button */}
+                  <Button
+                    onClick={handleLogout}
+                    variant="outline"
+                    size="sm"
+                    className="text-green-700 border-green-600 hover:bg-green-100 whitespace-nowrap"
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" size="sm">Login</Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button size="sm" className="bg-green-600 text-white hover:bg-green-700">
+                      Register
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {/* Mobile Menu Button & Notification */}
+            <div className="flex items-center gap-2 md:hidden">
+              {isLoggedIn && (
+                <Link href="/notification">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-700 hover:bg-gray-100 relative p-2"
+                  >
+                    <BellIcon className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 inline-flex items-center justify-center w-4 h-4 text-xs font-semibold text-white bg-red-500 rounded-full">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+              )}
               <Button
                 variant="ghost"
-                className="text-gray-700 hover:bg-gray-100 relative"
+                size="sm"
+                onClick={handleMobileMenuToggle}
+                className="p-2"
+                aria-label="Toggle mobile menu"
               >
-                <BellIcon className="w-6 h-6" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
-                    {unreadCount}
-                  </span>
+                {isMobileMenuOpen ? (
+                  <XMarkIcon className="w-6 h-6" />
+                ) : (
+                  <Bars3Icon className="w-6 h-6" />
                 )}
               </Button>
-            </Link>
-            {/* Logout Button */}
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="text-green-700 border-green-600 hover:bg-green-100"
-            >
-              Logout
-            </Button>
-          </>
-        ) : (
-          <>
-            <Link href="/login">
-              <Button variant="ghost">Login</Button>
-            </Link>
-            <Link href="/register">
-              <Button className="bg-green-600 text-white hover:bg-green-700">
-                Register
-              </Button>
-            </Link>
-          </>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 bg-white shadow-lg">
+            <div className="px-4 py-3 space-y-3">
+              {/* Mobile Navigation Links */}
+              {isLoggedIn && (
+                <div className="space-y-2">
+                  {renderMenuItems()?.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeMobileMenu}
+                      className="block py-2 px-3 text-gray-700 hover:text-green-700 hover:bg-gray-50 rounded-md transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              
+              {/* Mobile Auth Buttons */}
+              <div className="pt-3 border-t border-gray-200 space-y-2">
+                {isLoggedIn ? (
+                  <Button
+                    onClick={handleLogout}
+                    variant="outline"
+                    className="w-full text-green-700 border-green-600 hover:bg-green-100"
+                  >
+                    Logout
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <Link href="/login" onClick={closeMobileMenu}>
+                      <Button variant="ghost" className="w-full">
+                        Login
+                      </Button>
+                    </Link>
+                    <Link href="/register" onClick={closeMobileMenu}>
+                      <Button className="w-full bg-green-600 text-white hover:bg-green-700">
+                        Register
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
