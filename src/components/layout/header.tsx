@@ -130,6 +130,9 @@ export default function Navbar() {
             <Link href="/chat" className="hover:text-green-700">
               Chat
             </Link>
+            <Link href="/transactions" className="hover:text-green-700">
+              Riwayat
+            </Link>
           </>
         )}
       </nav>
