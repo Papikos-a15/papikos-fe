@@ -14,7 +14,7 @@ import { UUID } from "crypto";
 interface KosListing {
   id: string;
   name: string;
-  location: string;
+  address: string;
   price: number;
   availableRooms: number;
   facilities: string[];
@@ -470,7 +470,7 @@ export default function KosListingPage() {
                       <h2 className="text-xl font-semibold text-green-700">
                         {kos.name}
                       </h2>
-                      <p className="text-gray-600 mb-2">{kos.location}</p>
+                      <p className="text-gray-600 mb-2">{kos.address}</p>
                       <p className="text-lg font-bold mb-2">
                         Rp {kos.price.toLocaleString("id-ID")}/bulan
                       </p>
